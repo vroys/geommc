@@ -99,7 +99,7 @@ dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1)
 mean.ap.tar=function(x) c(0,10),var.ap.tar=function(x) c(1,1.4^2),
 dens.ap.tar=function(y,x) c(dnorm(y),dnorm(y,mean=10,sd=1.4)),
 samp.ap.tar=function(x,kk=1){if(kk==1){return(rnorm(1))} else{return(10+1.4*rnorm(1))}})
-#mixture of univariate normals, informed choices
+#mixture of univariate normals, an informed choice for dens.ap.tar
 hist(result$samples)
 samp.ap.tar=function(x,kk=1){s.g=sample.int(2,1,prob=c(.5,.5))
 if(s.g==1){return(rnorm(1))
@@ -108,7 +108,8 @@ result<-geomc(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4
 initial=0,n.iter=500,gaus=FALSE,imp=c(TRUE,n.samp=100,samp.base=TRUE),
 dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1),
 dens.ap.tar=function(y,x) 0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4),
-samp.ap.tar=samp.ap.tar) #mixture of univariate normals, informed choices
+samp.ap.tar=samp.ap.tar)
+#mixture of univariate normals, another informed choice for dens.ap.tar
 hist(result$samples)
 result <- geomc(log.target=function(y) -0.5*crossprod(y),initial=rep(0,4),
 n.iter=500) #multivariate normal

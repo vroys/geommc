@@ -1,0 +1,49 @@
+[
+    {
+        "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
+        "file_last_write": 1713251487.0,
+        "definitions": [
+            {
+                "usr": "c:@F@colSumSq_dge#$@N@Rcpp@S@Vector>#VI14#@N@Rcpp@ST>1#T@PreserveStorage#$@N@Rcpp@S@Vector>#VI13#@N@Rcpp@ST>1#T@PreserveStorage#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "colSumSq_dge(Rcpp::NumericVector, Rcpp::IntegerVector)",
+                "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
+                "line": 4,
+                "column": 15,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@colSumSq_matrix#$@N@Rcpp@S@Matrix>#VI14#@N@Rcpp@ST>1#T@PreserveStorage#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "colSumSq_matrix(Rcpp::NumericMatrix)",
+                "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
+                "line": 23,
+                "column": 15,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@colMSD_dgc#$@N@Rcpp@S@S4_Impl>#@N@Rcpp@ST>1#T@PreserveStorage#$@N@Rcpp@S@Vector>#VI14#@N@Rcpp@ST>1#T@PreserveStorage#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "colMSD_dgc(Rcpp::S4, Rcpp::NumericVector)",
+                "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
+                "line": 42,
+                "column": 15,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@colSUMIDX_dgc#$@N@Rcpp@S@S4_Impl>#@N@Rcpp@ST>1#T@PreserveStorage#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "colSUMIDX_dgc(Rcpp::S4)",
+                "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
+                "line": 68,
+                "column": 15,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    }
+]

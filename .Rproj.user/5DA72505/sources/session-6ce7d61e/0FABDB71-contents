@@ -1,0 +1,8 @@
+library(devtools)
+load_all()
+load_all()
+library(Rcpp)
+load_all()
+load_all()
+library(Rcpp)
+load_all()

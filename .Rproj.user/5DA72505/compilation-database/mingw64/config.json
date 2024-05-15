@@ -1,0 +1,24 @@
+{
+    "args": [
+        "-std=gnu++17",
+        "-IC:/PROGRA~1/R/R-43~1.2/include",
+        "-DNDEBUG",
+        "-IC:/Users/vroy/AppData/Local/R/win-library/4.3/Rcpp/include",
+        "-DEIGEN_DONT_VECTORIZE",
+        "-nostdinc",
+        "-Ic:/rtools43/x86_64~1.pos/bin/../lib/gcc/x86_64-w64-mingw32.static.posix/12.3.0/include/c++",
+        "-Ic:/rtools43/x86_64~1.pos/bin/../lib/gcc/x86_64-w64-mingw32.static.posix/12.3.0/include/c++/x86_64-w64-mingw32.static.posix",
+        "-Ic:/rtools43/x86_64~1.pos/bin/../lib/gcc/x86_64-w64-mingw32.static.posix/12.3.0/include/c++/backward",
+        "-Ic:/rtools43/x86_64~1.pos/bin/../lib/gcc/x86_64-w64-mingw32.static.posix/12.3.0/include",
+        "-Ic:/rtools43/x86_64~1.pos/bin/../lib/gcc/x86_64-w64-mingw32.static.posix/12.3.0/../../../../include",
+        "-Ic:/rtools43/x86_64~1.pos/bin/../lib/gcc/x86_64-w64-mingw32.static.posix/12.3.0/include-fixed",
+        "-include",
+        "C:/Users/vroy/Documents/Rpackage/WithSrc/geommc/.Rproj.user/5DA72505/compilation-database/mingw64/cpp-definitions.h"
+    ],
+    "pch": "Rcpp",
+    "is_cpp": true,
+    "hash": "1713976467",
+    "compiler": "14344192058900600965",
+    "rversion": "4.3.2",
+    "dbversion": 4
+}

@@ -1,0 +1,12 @@
+#' @keywords internal
+"_PACKAGE"
+#' geommc: A package for geometric Markov chain sampling.
+#'
+#' The mypackage package provides three categories of important functions:
+#' geomc, geomc.vs and cal.logp.vs.
+#' @name geommc
+#' @useDynLib geommc
+#' 
+## usethis namespace: start
+## usethis namespace: end
+NULL

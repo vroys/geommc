@@ -28,11 +28,11 @@ regression coefficient are returned on the original scale.}
 
 \item{initial}{is the initial model (the set of active variables). Default: Null model.}
 
-\item{n.iter}{is the no. of samples needed}
+\item{n.iter}{is the no. of samples needed.}
 
 \item{burnin}{is the value of burnin used to compute the median probability model. Default: 1.}
 
-\item{eps}{is the value for epsilon perturbation. Default: 0.5}
+\item{eps}{is the value for epsilon perturbation. Default: 0.5.}
 
 \item{symm}{indicates if the base density is of symmetric RW-MH. Default: True.}
 
@@ -52,19 +52,19 @@ as suggested by the theoretical results of Li, Dutta, Roy (2023).}
 A list with components
 \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as \eqn{p \times}n.iter sparse \code{dgCMatrix}.}
 \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
-\item{\code{mip}}{The p vector of marginal inclusion probabilities of all variables based on post burnin samples.}
+\item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 \item{\code{median.model}}{The  median probability model based on post burnin samples.}
-\item{\code{beta.med}}{The posterior  mean of \eqn{\beta} (the p+1 vector c(intercept, regression
+\item{\code{beta.med}}{The posterior  mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
 coefficients)) conditional on the median.model based on post burnin samples.}
-\item{\code{wmip}}{The p vector of weighted marginal inclusion probabilities of all variables based on post burnin samples.}
+\item{\code{wmip}}{The \eqn{p} vector of weighted marginal inclusion probabilities of all variables based on post burnin samples.}
 \item{\code{wam}}{The weighted average model based on post burnin samples.}
-\item{\code{beta.wam}}{The posterior  mean of \eqn{\beta} (the p+1 vector c(intercept, regression
+\item{\code{beta.wam}}{The posterior  mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
 coefficients)) conditional on the wam based on post burnin samples.}
 \item{\code{log.post}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
 at the samples.}
 }
 \description{
-geomc.vs is a geometric approach to perform Bayesian variable selection.
+geomc.vs uses a geometric approach to MCMC for performing Bayesian variable selection.
 It produces MCMC samples from the posterior density of a Bayesian hierarchical feature selection model.
 }
 \details{
@@ -81,7 +81,7 @@ those columns of \eqn{X} for which \eqn{\gamma_i=1} and similarly, \eqn{\beta_\g
 geomc.vs provides MCMC samples from the posterior pmf of the models \eqn{P(\gamma|y)}, which is available
 up to a normalizing constant.
 geomc.vs also returns the marginal inclusion probabilities (mip)
-computed by Monte Carlo average as well as the weighted marginal inclusion
+computed by the Monte Carlo average as well as the weighted marginal inclusion
 probabilities (wmip) computed with weights \deqn{w_i =
 P(\gamma^{(i)}|y)/\sum_{k=1}^K P(\gamma^{(k)}|y), i=1,2,...,K} where \eqn{K} is the number of distinct
 models sampled. Thus, based on the samples \eqn{\gamma^{(k)}, k=1,2,...,n.iter} mip for the \eqn{j}th variable is \deqn{mip_j =

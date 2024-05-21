@@ -25,40 +25,40 @@ geomc(
 )
 }
 \arguments{
-\item{log.target}{is the logarithm of the (un-normalized) target density function, needs to be written as a function of the current value x}
+\item{log.target}{is the logarithm of the (un-normalized) target density function, needs to be written as a function of the current value \eqn{x}.}
 
-\item{initial}{is the initial values}
+\item{initial}{is the initial values.}
 
-\item{n.iter}{is the no. of samples needed}
+\item{n.iter}{is the no. of samples needed.}
 
 \item{eps}{is the value for epsilon perturbation. Default is 0.5.}
 
-\item{ind}{is False if either f (the base density) or g (the approximate target density) depends on x. Default is False.}
+\item{ind}{is False if either the base density, \eqn{f} or the approximate target density, \eqn{g} depends on \eqn{x}. Default is False.}
 
-\item{gaus}{is True if both f and g are normal distributions. Default is True.}
+\item{gaus}{is True if both \eqn{f} and \eqn{g} are normal distributions. Default is True.}
 
 \item{imp}{is a vector of three elements. If gaus is TRUE, then the imp argument is not used.
 imp \eqn{[1]} is False  if numerical integration is used, otherwise, importance sampling is used. Default is False.
-imp \eqn{[2]} (n.samp) is no of samples in importance sampling,
-imp \eqn{[3]} (samp.base) is True if samples from f is used, otherwise samples from g is used. Default is False.}
+imp \eqn{[2]} (n.samp) is no of samples in importance sampling.
+imp \eqn{[3]} (samp.base) is True if samples from \eqn{f} is used, otherwise samples from \eqn{g} is used. Default is False.}
 
 \item{a}{is the probability vector for the mixture proposal density. Default is the uniform distribution.}
 
-\item{mean.base}{is the mean of the base density f, needs to be written as a function of current value x.}
+\item{mean.base}{is the mean of the base density \eqn{f}, needs to be written as a function of current value \eqn{x}.}
 
-\item{var.base}{is the covariance matrix of the base density f, needs to be written as a function of current value x.}
+\item{var.base}{is the covariance matrix of the base density \eqn{f}, needs to be written as a function of current value \eqn{x}.}
 
-\item{dens.base}{is the density function of the base density f, needs to be written as a function (y,x) (in this order) of the proposed value y and the current value x, although it may not depend on x.}
+\item{dens.base}{is the density function of the base density \eqn{f}, needs to be written as a function \eqn{(y,x)} (in this order) of the proposed value \eqn{y} and the current value \eqn{x}, although it may not depend on \eqn{x}.}
 
-\item{samp.base}{is the function to draw from the base density f, needs to be written as a function of current value x.}
+\item{samp.base}{is the function to draw from the base density \eqn{f}, needs to be written as a function of current value \eqn{x}.}
 
-\item{mean.ap.tar}{is the vector of means of the densities g_i(y|x), i=1,dots,k. It needs to be written as a function of current value x. It must have the same dimension as k times the length of initial.}
+\item{mean.ap.tar}{is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of current value \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.}
 
-\item{var.ap.tar}{is the matrix of covariance matrices of the densities g_i(y|x), i=1,dots,k formed by column concatenation. It needs to be written as a function of current value x. It must have the same dimension as the length of initial by k times the length of initial.}
+\item{var.ap.tar}{is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.}
 
-\item{dens.ap.tar}{is the vector of densities g_i(y|x), i=1,dots,k. It needs to be written as a function (y,x) (in this order) of the proposed value y and the current value x, although it may not depend on x.}
+\item{dens.ap.tar}{is the vector of densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function \eqn{(y,x)} (in this order) of the proposed value \eqn{y} and the current value \eqn{x}, although it may not depend on \eqn{x}.}
 
-\item{samp.ap.tar}{is the function to draw from the densities g_i(y|x), i=1,dots,k. It needs to be written as a function of (current value x, the indicator of mixing component kk). It must return a vector of the length of that of the initial.}
+\item{samp.ap.tar}{is the function to draw from the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of (current value \eqn{x}, the indicator of mixing component \eqn{kk}). It must return a vector of the length of that of the initial.}
 }
 \value{
 The function returns a list with the following elements:
@@ -68,13 +68,15 @@ The function returns a list with the following elements:
 \description{
 geomc produces Markov chain samples from a target distribution.
 The target can be a pdf or pmf. Users specify the target distribution by an R function that evaluates
-the log un-normalized pdf or pmf. The base density can be specified along with its mean, covariance matrix, and a function
-for sampling from it. Gaussian densities can be specified by mean and variance only, although it is also preferred to supply density
-and sampling functions. If either or both of the mean and variance arguments and any of the density and sampling functions is
+the log un-normalized pdf or pmf. geomc uses the geometric approach of Roy (2024)  to move an uninformed
+base density (e.g. a random walk proposal) towards different global/local approximations of the
+target density. The base density can be specified along with its mean, covariance matrix, and a function
+for sampling from it. Gaussian densities can be specified by mean and variance only, although it is preferred to supply its density
+and sampling functions as well. If either or both of the mean and variance arguments and any of the density and sampling functions is
 missing, then a base density corresponding to a random walk with an appropriate scale parameter is used. One or more approximate target densities
-can be specified along with their means, covariance matrices, and a function for sampling from the density.
-Gaussian densities can be specified by mean and variance only, although it is also preferred to supply density and sampling
-functions. If either or both of the mean and variance
+can be specified along with their means, covariance matrices, and a function for sampling from the densities.
+Gaussian densities can be specified by mean and variance only, although it is preferred to supply their densities and sampling
+functions as well. If either or both of the mean and variance
 arguments and any of the density and sampling functions is missing for the approximate target density, then a normal distribution with mean computed from
 a pilot run of a random walk Markov chain and a diagonal covariance matrix with a large variance is used.
 If the Argument gaus is set as FALSE then both the base and the approximate target can be specified by their

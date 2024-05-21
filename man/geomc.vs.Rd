@@ -118,6 +118,10 @@ result$log.post #the log (unnormalized) posterior probabilities of the MCMC samp
 \references{
 Roy, V.(2024) A geometric approach to informative MCMC
 sampling
+
+Li, D., Dutta, S., Roy, V.(2023) Model Based Screening Embedded Bayesian
+Variable Selection for Ultra-high Dimensional Settings, Journal of Computational and
+Graphical Statistics, 32, 61-73
 }
 \author{
 Vivekananda Roy

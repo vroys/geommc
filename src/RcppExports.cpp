@@ -11,7 +11,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // colSumSq_dge
-NumericVector colSumSq_dge(NumericVector x, IntegerVector dim);
+/* the following codes are from the R package bravo */ NumericVector colSumSq_dge(NumericVector x, IntegerVector dim);
 RcppExport SEXP _geommc_colSumSq_dge(SEXP xSEXP, SEXP dimSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

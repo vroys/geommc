@@ -1,7 +1,7 @@
 [
     {
         "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
-        "file_last_write": 1713251487.0,
+        "file_last_write": 1716024138.0,
         "definitions": [
             {
                 "usr": "c:@F@colSumSq_dge#$@N@Rcpp@S@Vector>#VI14#@N@Rcpp@ST>1#T@PreserveStorage#$@N@Rcpp@S@Vector>#VI13#@N@Rcpp@ST>1#T@PreserveStorage#",
@@ -9,7 +9,7 @@
                 "parent_name": "",
                 "name": "colSumSq_dge(Rcpp::NumericVector, Rcpp::IntegerVector)",
                 "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
-                "line": 4,
+                "line": 5,
                 "column": 15,
                 "hidden": false
             },
@@ -19,7 +19,7 @@
                 "parent_name": "",
                 "name": "colSumSq_matrix(Rcpp::NumericMatrix)",
                 "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
-                "line": 23,
+                "line": 24,
                 "column": 15,
                 "hidden": false
             },
@@ -29,7 +29,7 @@
                 "parent_name": "",
                 "name": "colMSD_dgc(Rcpp::S4, Rcpp::NumericVector)",
                 "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
-                "line": 42,
+                "line": 43,
                 "column": 15,
                 "hidden": false
             },
@@ -39,7 +39,7 @@
                 "parent_name": "",
                 "name": "colSUMIDX_dgc(Rcpp::S4)",
                 "file": "C:/Users/vroy/Documents/GitHub/geommc/src/matrix_manip.cpp",
-                "line": 68,
+                "line": 69,
                 "column": 15,
                 "hidden": false
             }

@@ -65,6 +65,9 @@
 #' @author Vivekananda Roy
 #' @references Roy, V.(2024) A geometric approach to informative MCMC
 #'   sampling
+#' @references Li, D., Dutta, S., Roy, V.(2023) Model Based Screening Embedded Bayesian 
+#' Variable Selection for Ultra-high Dimensional Settings, Journal of Computational and 
+#' Graphical Statistics, 32, 61-73
 #' @examples
 #' n=50; p=100; nonzero = 3
 #' trueidx <- 1:3

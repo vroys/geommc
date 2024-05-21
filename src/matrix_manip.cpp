@@ -1,6 +1,7 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 // [[Rcpp::export]]
+/* the following codes are from the R package bravo */
 NumericVector colSumSq_dge(NumericVector x,IntegerVector dim) {
   int n = dim[0];
   int p = dim[1];

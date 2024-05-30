@@ -115,6 +115,7 @@ samp.ap.tar=samp.ap.tar)
 hist(result$samples)
 result <- geomc(log.target=function(y) -0.5*crossprod(y),initial=rep(0,4),
 n.iter=500) #multivariate normal
+rowMeans(result$samples)
 size=5
 result <- geomc(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
 initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=c(TRUE,n.samp=1000,samp.base=TRUE),

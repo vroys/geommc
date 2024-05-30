@@ -76,6 +76,7 @@
 #' hist(result$samples)
 #' result <- geomc(log.target=function(y) -0.5*crossprod(y),initial=rep(0,4),
 #' n.iter=500) #multivariate normal
+#' rowMeans(result$samples)
 #' size=5
 #' result <- geomc(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
 #' initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=c(TRUE,n.samp=1000,samp.base=TRUE),
@@ -263,7 +264,6 @@ geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=c(FALSE
       }else{
       calc=matrix(unlist(lapply(seq(1,k),function(ii) bc(mean.base(curr),mean.ap.tar(curr)[seq((ii-1)*dd+1,ii*dd)],var.base(curr),var.ap.tar(curr)[,seq((ii-1)*dd+1,ii*dd),drop=FALSE],TargetOnly))), ncol = 2, byrow = TRUE)
       }
-      #calc=matrix(unlist(lapply(seq(1,k),function(ii) bc(mean.base(curr),mean.ap.tar(curr)[seq((ii-1)*dd+1,ii*dd)],var.base(curr),as.matrix(var.ap.tar(curr))[,seq((ii-1)*dd+1,ii*dd),drop=FALSE],TargetOnly))), ncol = 2, byrow = TRUE)
       prod_c=calc[,1]
       theta_c=calc[,2]
       for (i in 1:n.iter) {
@@ -274,7 +274,6 @@ geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=c(FALSE
         }else{
           calc=matrix(unlist(lapply(seq(1,k),function(ii) bc(mean.base(proposed),mean.ap.tar(proposed)[seq((ii-1)*dd+1,ii*dd)],var.base(proposed),var.ap.tar(proposed)[,seq((ii-1)*dd+1,ii*dd),drop=FALSE],TargetOnly))), ncol = 2, byrow = TRUE)
         }
-        #calc=matrix(unlist(lapply(seq(1,k),function(ii) bc(mean.base(proposed),mean.ap.tar(proposed)[seq((ii-1)*dd+1,ii*dd)],var.base(proposed),as.matrix(var.ap.tar(proposed))[,seq((ii-1)*dd+1,ii*dd),drop=FALSE],TargetOnly))), ncol = 2, byrow = TRUE)
         prod_p=calc[,1]
         theta_p=calc[,2]
         logr = (log.tar_prop+log_phi(a,curr,proposed,prod_p,theta_p,eps,dens.base,dens.ap.tar)-log.tar_curr-log_phi(a,proposed,curr,prod_c,theta_c,eps,dens.base,dens.ap.tar))%>%replace(is.na(.),-Inf)
@@ -294,7 +293,6 @@ geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=c(FALSE
       }else{
         calc=matrix(unlist(lapply(seq(1,k),function(ii) bc(mean.base(curr),mean.ap.tar(curr)[seq((ii-1)*dd+1,ii*dd)],var.base(curr),var.ap.tar(curr)[,seq((ii-1)*dd+1,ii*dd),drop=FALSE],TargetOnly))), ncol = 2, byrow = TRUE)
       }
-      #calc=matrix(unlist(lapply(seq(1,k),function(ii) bc(mean.base(curr),mean.ap.tar(curr)[seq((ii-1)*dd+1,ii*dd)],var.base(curr),as.matrix(var.ap.tar(curr))[,seq((ii-1)*dd+1,ii*dd),drop=FALSE],TargetOnly))), ncol = 2, byrow = TRUE)
       prod=calc[,1]
       theta=calc[,2]
       for (i in 1:n.iter) {

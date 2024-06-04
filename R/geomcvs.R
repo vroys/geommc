@@ -165,7 +165,7 @@ logp_curr=logp.vs(curr,X,ys,lam,w)
    weight = weight.unnorm/sum(weight.unnorm)
 
    MIP=rowMeans(samps.postburn)
-   WMIP=as.vector(samps.postburn[,logpost.uniq.ind]%*%weight)
+   WMIP=as.vector(samps.postburn[,logpost.uniq.ind,drop=FALSE]%*%weight)
    med.model<-which(MIP>=model.threshold)
    model.WAM<-which(WMIP>=model.threshold)
    if (length(med.model)==0){

@@ -94,7 +94,7 @@ geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=c(FALSE
   if(missing(n.iter)) stop("n.iter must be provided")
 
   if(n.iter < 1) stop("n.iter must be larger than or equal to 1")
-
+  if(log.target(initial)==-Inf || is.na(log.target(initial))) stop("the initial state must satisfy log.target(initial) > -Inf")
 
   dd=length(initial)
   if(eps<0 || eps>1) stop("eps must be a proper fraction")

@@ -26,10 +26,13 @@
 
 logp.vs <- function(model,X,y,lam,w)
 {
-
+  if(lam<=0) stop("lam must be a positive number")
+  if(w<=0 || w>=1) stop("w must be a proper fraction")
   if(is.logical(model)) model = which(model);
 
   model = as.integer(model)
+  if(any(any(model>ncol(X)),any(model<1))) stop("The model must be a subset of column numbers of X")
+  
 
   n = nrow(X)
   logw = log(w/(1-w))

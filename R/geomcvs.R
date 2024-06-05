@@ -14,7 +14,7 @@
 #' @param burnin is the value of burnin used to compute the median probability model. Default: 1.
 #' @param eps is the value for epsilon perturbation. Default: 0.5.
 #' @param symm indicates if the base density is of symmetric RW-MH. Default: True.
-#' @param move.prob is the vector of ('addition', 'deletion', 'swap') move probabilities.
+#' @param move.prob is the vector of ('addition', 'deletion', 'swap') move probabilities. Default: (0.4,0.4,0.2).
 #' move.prob is used only when symm is set to False.
 #' @param model.threshold The threshold probability to select the covariates for median.model and wam.
 #' A covariate will be included in median.model (wam) if its marginal inclusion
@@ -93,14 +93,17 @@ geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.pr
    if(n.iter < 1) stop("n.iter must be larger than or equal to 1")
    if(burnin < 1) stop("burnin must be larger than or equal to 1")
    if(burnin > n.iter) stop("burnin must be  smaller than or equal to n.iter")
-   if(eps<0 || eps>1) stop("eps must be a proper fraction")
-   if(w<0 || w>1) stop("w must be a proper fraction")
-
-
-  ctr_accep =0
+   if(eps<=0 || eps>=1) stop("eps must be a proper fraction")
+   if(lam<=0) stop("lam must be a positive number")
+   if(w<=0 || w>=1) stop("w must be a proper fraction")
+   if(model.threshold<=0 || model.threshold>=1) stop("model.threshold must be a proper fraction")
+   if(!symm) if(any(move.prob <0) || length(move.prob)!=3) stop("move.prob must be a probability vector of length three")
+   move.prob=move.prob/sum(move.prob)
+   ctr_accep =0
    ncovar <- ncol(X)
    nn<-length(y)
    if(nn!=nrow(X)) stop("The number of rows of X must match with the length of y")
+   if(any(any(initial>ncovar),any(initial<1))) stop("The initial model must be a subset of column numbers of X")
 
   ys = scale(y)
   xbar = Matrix::colMeans(X)
@@ -117,7 +120,7 @@ curr = sort.int(initial) # Initial value
 eps = eps
 log.post<-numeric(n.iter)
 size <- integer(n.iter)
-indices <- integer(n.iter*50)
+indices <- integer(n.iter*20)
 ctr.ind=0
 
 logp.add.cur=addvar_vs(curr, x=X, ys=ys, xty=Xty, lam=lam, w=w, D=D, xbar=xbar)$logp
@@ -158,7 +161,7 @@ logp_curr=logp.vs(curr,X,ys,lam,w)
    indices <- indices[indices>0]
   cumsize <- cumsum(size)
    samps <- sparseMatrix(i=indices,p = c(0,cumsize),index1 = T,dims = c(ncovar,n.iter), x = 1)
-   samps.postburn<-samps[,burnin:n.iter]
+   samps.postburn<-samps[,burnin:n.iter,drop=FALSE]
    log.postburn<-log.post[burnin:n.iter]
    logpost.uniq.ind <-  !duplicated(log.postburn)
    weight.unnorm = exp(log.postburn[logpost.uniq.ind] - max(log.postburn))

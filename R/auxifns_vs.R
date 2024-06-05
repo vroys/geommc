@@ -117,13 +117,11 @@ samp_g_vs=function(model,ncovar,logp.add,logp.del,logp.swap){
       logp.swap1 <- logp.swap-logp.best
       move=sample.int(3,1,prob=c(sum(exp(logp.add1)),sum(exp(logp.del1)),sum(exp(logp.swap1))))
       if(move==1){
-        #index <- sample(setdiff(seq(1,p),model),size=1,prob=exp(logp.add[logp.add>-Inf]))
         logp.best<-max(logp.add)
         logp.add1<-logp.add-logp.best
         index <- sample.int(p,size=1,prob=exp(logp.add1))
         model<-sort.int(union(model,index))
     }else if(move==2){
-      #index <- sample(model,size=1,prob=exp(logp.del[logp.del>-Inf]))
       logp.best<-max(logp.del)
       logp.del1<-logp.del-logp.best
       index <- sample.int(p,size=1,prob=exp(logp.del1))
@@ -167,8 +165,6 @@ samp_h_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob
 
 
 log_phi_vs = function(prop,curr,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w,eps){
-#  kk=length(a)
- # val=numeric(kk)
   kk=1
   val=0
   if(eps==1){
@@ -178,16 +174,11 @@ log_phi_vs = function(prop,curr,prod,theta,ncovar,logp.add,logp.del,logp.swap,sy
       val=log(coef*dens_f_vs(prop,curr,ncovar,symm,move.prob)+(1-coef)*dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w))
     }
   return(sum(val))
-#  return(sum(a*val))
 }
 #sample from phi(|curr)
 samp_phi_vs = function(model,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w,eps){
-  #kk=length(a)
   kk=1
   s.a=1
-  #if(kk>1){
-  #  s.a=sample.int(kk,1,prob=a)
-   # }
     if(prod[s.a]==1){
         return(samp_f_vs(model,ncovar,symm,move.prob))
             }else{

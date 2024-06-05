@@ -103,6 +103,7 @@ geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=c(FALSE
     if(!checkFuncArgs(mean.base, "x")) stop("mean.base must be a function with only one argument \"x\"")
 
     if(length(mean.base(initial))!=dd) stop("mean.base must return a vector of same length as initial")
+    if(any(is.infinite(mean.base(initial)))||any(is.na(mean.base(initial))))stop("mean.base at initial is not finite")
   }
   if(!missing(var.base)){
     if(!checkFuncArgs(var.base, "x"))stop("var.base must be a function with only one argument \"x\"")
@@ -115,19 +116,22 @@ geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=c(FALSE
   }
   if(!missing(dens.base)){
     if(!checkFuncArgs(dens.base, c("y", "x")))stop("dens.base must be a function with only two arguments \"y\" and \"x\"")
+    if(is.infinite(dens.base(initial,initial))||is.na(dens.base(initial,initial)))stop("dens.base at initial is not finite")
   }
 
   if(!missing(samp.base)){
     if(!checkFuncArgs(samp.base, "x")) stop("samp.base must be a function with only one argument \"x\"")
+    if(any(is.infinite(samp.base(initial)))||any(is.na(samp.base(initial))))stop("samp.base at initial does not return finite values")
   }
 
   if(!missing(dens.ap.tar)){
     if(!checkFuncArgs(dens.ap.tar, c("y", "x")))stop("dens.ap.tar must be a function with only two arguments \"y\" and \"x\"")
+    if(any(is.infinite(dens.ap.tar(initial,initial)))||any(is.na(dens.ap.tar(initial,initial))))stop("dens.ap.tar at initial is not finite")
   }
-
 
   if(!missing(mean.ap.tar)){
     if(!checkFuncArgs(mean.ap.tar, "x")) stop("mean.ap.tar must be a function with only one argument \"x\"")
+    if(any(is.infinite(mean.ap.tar(initial)))||any(is.na(mean.ap.tar(initial))))stop("mean.ap.tar at initial is not finite")
     k=length(mean.ap.tar(initial))/dd
     if(!missing(var.ap.tar)){
       if(!checkFuncArgs(var.ap.tar, "x")) stop("var.ap.tar must be a function with only one argument \"x\"")
@@ -148,7 +152,9 @@ geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=c(FALSE
   }
 
   if(!missing(samp.ap.tar)){
-    if(dd!=length(samp.ap.tar(initial,kk=1))) stop("samp.ap.tar must return a sample of the same size as initial")
+    for(ii in 1:k){if(any(is.infinite(samp.ap.tar(initial,kk=ii)))||any(is.na(samp.ap.tar(initial,kk=ii))))stop("samp.ap.tar at initial does not return finite values")
+    if(dd!=length(samp.ap.tar(initial,kk=ii))) stop("samp.ap.tar must return a sample of the same size as initial")
+    }
   }
 
   if(imp[1]){

@@ -36,7 +36,7 @@ regression coefficient are returned on the original scale.}
 
 \item{symm}{indicates if the base density is of symmetric RW-MH. Default: True.}
 
-\item{move.prob}{is the vector of ('addition', 'deletion', 'swap') move probabilities.
+\item{move.prob}{is the vector of ('addition', 'deletion', 'swap') move probabilities. Default: (0.4,0.4,0.2).
 move.prob is used only when symm is set to False.}
 
 \item{model.threshold}{The threshold probability to select the covariates for median.model and wam.

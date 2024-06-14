@@ -33,28 +33,30 @@ geomc(
 
 \item{eps}{is the value for epsilon perturbation. Default is 0.5.}
 
-\item{ind}{is False if either the base density, \eqn{f} or the approximate target density, \eqn{g} depends on \eqn{x}. Default is False.}
+\item{ind}{is False if either the base density, \eqn{f} or the approximate target density, \eqn{g} depends on
+the current value \eqn{x}. Default is False.}
 
 \item{gaus}{is True if both \eqn{f} and \eqn{g} are normal distributions. Default is True.}
 
 \item{imp}{is a vector of three elements. If gaus is TRUE, then the imp argument is not used.
-imp \eqn{[1]} is False  if numerical integration is used, otherwise, importance sampling is used. Default is False.
+imp \eqn{[1]} is False  if numerical integration is used, otherwise, importance sampling is used to
+compute \eqn{\langle \sqrt{f}, \sqrt{g} \rangle}. Default is False.
 imp \eqn{[2]} (n.samp) is no of samples in importance sampling.
 imp \eqn{[3]} (samp.base) is True if samples from \eqn{f} is used, otherwise samples from \eqn{g} is used. Default is False.}
 
 \item{a}{is the probability vector for the mixture proposal density. Default is the uniform distribution.}
 
-\item{mean.base}{is the mean of the base density \eqn{f}, needs to be written as a function of current value \eqn{x}.}
+\item{mean.base}{is the mean of the base density \eqn{f}, needs to be written as a function of the current value \eqn{x}.}
 
-\item{var.base}{is the covariance matrix of the base density \eqn{f}, needs to be written as a function of current value \eqn{x}.}
+\item{var.base}{is the covariance matrix of the base density \eqn{f}, needs to be written as a function of the current value \eqn{x}.}
 
 \item{dens.base}{is the density function of the base density \eqn{f}, needs to be written as a function \eqn{(y,x)} (in this order) of the proposed value \eqn{y} and the current value \eqn{x}, although it may not depend on \eqn{x}.}
 
-\item{samp.base}{is the function to draw from the base density \eqn{f}, needs to be written as a function of current value \eqn{x}.}
+\item{samp.base}{is the function to draw from the base density \eqn{f}, needs to be written as a function of the current value \eqn{x}.}
 
-\item{mean.ap.tar}{is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of current value \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.}
+\item{mean.ap.tar}{is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of the current value \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.}
 
-\item{var.ap.tar}{is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.}
+\item{var.ap.tar}{is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.}
 
 \item{dens.ap.tar}{is the vector of densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function \eqn{(y,x)} (in this order) of the proposed value \eqn{y} and the current value \eqn{x}, although it may not depend on \eqn{x}.}
 
@@ -89,11 +91,12 @@ Using a geometric Metropolis-Hastings algorithm geom.mc produces Markov chains w
 of the method can be found in Roy (2024).
 }
 \examples{
-result <- geomc(log.target=function(y) dnorm(y,log=TRUE),initial=0,n.iter=500) #univariate normal
+result <- geomc(log.target=function(y) dnorm(y,log=TRUE),initial=0,n.iter=500) 
+#target is univariate normal
 result$samples # the MCMC samples.
 result$acceptance.rate # the acceptance rate.
 result<-geomc(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
-initial=0,n.iter=500) #mixture of univariate normals, default choices
+initial=0,n.iter=500) #target is mixture of univariate normals, default choices
 hist(result$samples)
 result<-geomc(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
 initial=0,n.iter=500, mean.base = function(x) x,var.base= function(x) 4,
@@ -101,7 +104,8 @@ dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1)
 mean.ap.tar=function(x) c(0,10),var.ap.tar=function(x) c(1,1.4^2),
 dens.ap.tar=function(y,x) c(dnorm(y),dnorm(y,mean=10,sd=1.4)),
 samp.ap.tar=function(x,kk=1){if(kk==1){return(rnorm(1))} else{return(10+1.4*rnorm(1))}})
-#mixture of univariate normals, an informed choice for dens.ap.tar
+#target is mixture of univariate normals, random walk base density, an informed 
+#choice for dens.ap.tar
 hist(result$samples)
 samp.ap.tar=function(x,kk=1){s.g=sample.int(2,1,prob=c(.5,.5))
 if(s.g==1){return(rnorm(1))
@@ -111,21 +115,22 @@ initial=0,n.iter=500,gaus=FALSE,imp=c(TRUE,n.samp=100,samp.base=TRUE),
 dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1),
 dens.ap.tar=function(y,x) 0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4),
 samp.ap.tar=samp.ap.tar)
-#mixture of univariate normals, another informed choice for dens.ap.tar
+#target is mixture of univariate normals, random walk base density, another 
+#informed choice for dens.ap.tar
 hist(result$samples)
 result <- geomc(log.target=function(y) -0.5*crossprod(y),initial=rep(0,4),
-n.iter=500) #multivariate normal
+n.iter=500) #target is multivariate normal, default choices
 rowMeans(result$samples)
 size=5
 result <- geomc(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
 initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=c(TRUE,n.samp=1000,samp.base=TRUE),
 dens.base=function(y,x) 1/(size+1), samp.base= function(x) sample(seq(0,size,1),1),
 dens.ap.tar=function(y,x) dbinom(y, size, 0.7),samp.ap.tar=function(x,kk=1) rbinom(1, size, 0.7))
- #binomial
+ #target is binomial
  table(result$samples)
 }
 \references{
-Roy, V.(2024) A geometric approach to informative MCMC sampling
+Roy, V.(2024) A geometric approach to informative MCMC sampling https://arxiv.org/abs/2406.09010
 }
 \author{
 Vivekananda Roy \href{mailto:vroy@iastate.edu}{vroy@iastate.edu}

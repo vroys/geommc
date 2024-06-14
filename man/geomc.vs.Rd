@@ -22,13 +22,13 @@ geomc.vs(
 \arguments{
 \item{X}{The \eqn{n\times p} covariate matrix without intercept. The following classes are supported:
 \code{matrix} and \code{dgCMatrix}.  No need to center or scale this matrix manually. Scaling is performed implicitly and
-regression coefficient are returned on the original scale.}
+regression coefficients are returned on the original scale.}
 
 \item{y}{The response vector of length \eqn{n}. No need to center or scale.}
 
 \item{initial}{is the initial model (the set of active variables). Default: Null model.}
 
-\item{n.iter}{is the no. of samples needed.}
+\item{n.iter}{is the no. of samples needed. Default: 50.}
 
 \item{burnin}{is the value of burnin used to compute the median probability model. Default: 1.}
 
@@ -39,14 +39,15 @@ regression coefficient are returned on the original scale.}
 \item{move.prob}{is the vector of ('addition', 'deletion', 'swap') move probabilities. Default: (0.4,0.4,0.2).
 move.prob is used only when symm is set to False.}
 
-\item{model.threshold}{The threshold probability to select the covariates for median.model and wam.
+\item{model.threshold}{The threshold probability to select the covariates for
+the median model (median.model) and the weighted average model (wam).
 A covariate will be included in median.model (wam) if its marginal inclusion
 probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.}
 
 \item{lam}{The slab precision parameter. Default: \eqn{n/p^2}
 as suggested by the theoretical results of Li, Dutta, Roy (2023).}
 
-\item{w}{The prior inclusion probability of each variable. Default: \eqn{sqrt(n)/p}.}
+\item{w}{The prior inclusion probability of each variable. Default: \eqn{\sqrt{n}/p}.}
 }
 \value{
 A list with components
@@ -117,7 +118,7 @@ result$log.post #the log (unnormalized) posterior probabilities of the MCMC samp
 }
 \references{
 Roy, V.(2024) A geometric approach to informative MCMC
-sampling
+sampling https://arxiv.org/abs/2406.09010
 
 Li, D., Dutta, S., Roy, V.(2023) Model Based Screening Embedded Bayesian
 Variable Selection for Ultra-high Dimensional Settings, Journal of Computational and

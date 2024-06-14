@@ -38,7 +38,7 @@ result <- geomc.vs(X=X, y=y)
 logp.vs(result$median.model,X,y,lam = nrow(X)/ncol(X)^2,w = sqrt(nrow(X))/ncol(X))
 }
 \references{
-Roy, V.(2024) A geometric approach to informative MCMC sampling
+Roy, V.(2024) A geometric approach to informative MCMC sampling https://arxiv.org/abs/2406.09010
 }
 \author{
 Vivekananda Roy

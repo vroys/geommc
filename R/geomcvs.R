@@ -7,21 +7,22 @@
 #' It produces MCMC samples from the posterior density of a Bayesian hierarchical feature selection model.
 #' @param X The \eqn{n\times p} covariate matrix without intercept. The following classes are supported:
 #' \code{matrix} and \code{dgCMatrix}.  No need to center or scale this matrix manually. Scaling is performed implicitly and
-#' regression coefficient are returned on the original scale.
+#' regression coefficients are returned on the original scale.
 #' @param y The response vector of length \eqn{n}. No need to center or scale.
 #' @param initial is the initial model (the set of active variables). Default: Null model.
-#' @param n.iter is the no. of samples needed.
+#' @param n.iter is the no. of samples needed. Default: 50.
 #' @param burnin is the value of burnin used to compute the median probability model. Default: 1.
 #' @param eps is the value for epsilon perturbation. Default: 0.5.
 #' @param symm indicates if the base density is of symmetric RW-MH. Default: True.
 #' @param move.prob is the vector of ('addition', 'deletion', 'swap') move probabilities. Default: (0.4,0.4,0.2).
 #' move.prob is used only when symm is set to False.
-#' @param model.threshold The threshold probability to select the covariates for median.model and wam.
+#' @param model.threshold The threshold probability to select the covariates for
+#' the median model (median.model) and the weighted average model (wam).
 #' A covariate will be included in median.model (wam) if its marginal inclusion
 #' probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.
 #' @param lam The slab precision parameter. Default: \eqn{n/p^2}
 #' as suggested by the theoretical results of Li, Dutta, Roy (2023).
-#' @param w The prior inclusion probability of each variable. Default: \eqn{sqrt(n)/p}.
+#' @param w The prior inclusion probability of each variable. Default: \eqn{\sqrt{n}/p}.
 #' @details
 #' geomc.vs provides MCMC samples using the geometric MH algorithm of Roy (2024)
 #' for variable selection based on a hierarchical Gaussian linear model with priors placed
@@ -64,7 +65,7 @@
 #'   at the samples.}
 #' @author Vivekananda Roy
 #' @references Roy, V.(2024) A geometric approach to informative MCMC
-#'   sampling
+#'   sampling https://arxiv.org/abs/2406.09010
 #' @references Li, D., Dutta, S., Roy, V.(2023) Model Based Screening Embedded Bayesian 
 #' Variable Selection for Ultra-high Dimensional Settings, Journal of Computational and 
 #' Graphical Statistics, 32, 61-73

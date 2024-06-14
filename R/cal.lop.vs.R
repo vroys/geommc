@@ -9,7 +9,7 @@
 #' @param w The prior inclusion probability of each variable.
 #' @return The log-unnormalized posterior probability of the model.
 #' @author Vivekananda Roy
-#' @references Roy, V.(2024) A geometric approach to informative MCMC sampling
+#' @references Roy, V.(2024) A geometric approach to informative MCMC sampling https://arxiv.org/abs/2406.09010
 #' @examples
 #' n=50; p=100; nonzero = 3
 #' trueidx <- 1:3

@@ -152,7 +152,7 @@ logp_curr=logp.vs(curr,X,ys,lam,w)
                 ctr_accep = ctr_accep+1
             }
           log.post[i] <-logp_curr
-           if(!is.null(curr)){
+           if(length(curr)>0){
           size[i] <- length(curr)
           indices[(ctr.ind+1):(ctr.ind+size[i])] <- curr
           ctr.ind <- ctr.ind+size[i]

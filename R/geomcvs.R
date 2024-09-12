@@ -20,6 +20,9 @@
 #' the median model (median.model) and the weighted average model (wam).
 #' A covariate will be included in median.model (wam) if its marginal inclusion
 #' probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.
+#' @param lam0 The precision parameter for \eqn{\beta_0}. Default: 0 (corresponding to improper uniform prior).
+#' @param a0 The shape parameter for prior on \eqn{\sigma^2}. Default: 0.
+#' @param b0 The scale parameter for prior on \eqn{\sigma^2}. Default: 0.
 #' @param lam The slab precision parameter. Default: \eqn{n/p^2}
 #' as suggested by the theoretical results of Li, Dutta, Roy (2023).
 #' @param w The prior inclusion probability of each variable. Default: \eqn{\sqrt{n}/p}.
@@ -29,11 +32,15 @@
 #' on the regression coefficients as well as on the model space as follows:
 #' \deqn{y | X, \beta_0,\beta,\gamma,\sigma^2,w,\lambda \sim N(\beta_01 + X_\gamma\beta_\gamma,\sigma^2I_n)}
 #' \deqn{\beta_i|\beta_0,\gamma,\sigma^2,w,\lambda \stackrel{indep.}{\sim} N(0, \gamma_i\sigma^2/\lambda),~i=1,\ldots,p,}
-#' \deqn{(\beta_0,\sigma^2)|\gamma,w,p \sim p(\beta_0,\sigma^2) \propto 1/\sigma^2}
+#' \deqn{\beta_0|\gamma,\sigma^2,w,\lambda \sim N(0, \sigma^2/\lambda_0)}
+#' \deqn{\sigma^2|\gamma,w,\lambda \sim Inv-Gamma (a_0, b_0)}
 #' \deqn{\gamma_i|w,\lambda \stackrel{iid}{\sim} Bernoulli(w)}
 #' where \eqn{X_\gamma} is the \eqn{n \times |\gamma|} submatrix of \eqn{X} consisting of
 #' those columns of \eqn{X} for which \eqn{\gamma_i=1} and similarly, \eqn{\beta_\gamma} is the
-#' \eqn{|\gamma|} subvector of \eqn{\beta} corresponding to \eqn{\gamma}.
+#' \eqn{|\gamma|} subvector of \eqn{\beta} corresponding to \eqn{\gamma}. The density \eqn{\pi(\sigma^2)} of 
+#' \eqn{\sigma^2 \sim Inv-Gamma (a_0, b_0)} has the form \eqn{\pi(\sigma^2) \propto (\sigma^2)^{-a_0-1} \exp(-b_0/\sigma^2)}.
+#'  The functions in the package also allow the non-informative prior \eqn{(\beta_{0}, \sigma^2)|\gamma, w \sim 1 / \sigma^{2}} 
+#'  which is obtained by setting \eqn{\lambda_0=a_0=b_0=0}.
 #' geomc.vs provides MCMC samples from the posterior pmf of the models \eqn{P(\gamma|y)}, which is available
 #' up to a normalizing constant.
 
@@ -90,11 +97,14 @@
 #' result$beta.wam #the posterior mean of regression coefficients for the wam
 #' result$log.post #the log (unnormalized) posterior probabilities of the MCMC samples.
 #' @export
-geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.prob=c(.4,.4,.2), model.threshold = 0.5, lam = nrow(X)/ncol(X)^2, w = sqrt(nrow(X))/ncol(X)){
+geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.prob=c(.4,.4,.2), model.threshold = 0.5, lam0=0, a0=0, b0=0, lam = nrow(X)/ncol(X)^2, w = sqrt(nrow(X))/ncol(X)){
    if(n.iter < 1) stop("n.iter must be larger than or equal to 1")
    if(burnin < 1) stop("burnin must be larger than or equal to 1")
    if(burnin > n.iter) stop("burnin must be  smaller than or equal to n.iter")
    if(eps<=0 || eps>=1) stop("eps must be a proper fraction")
+   if(lam0<0) stop("lam0 must be a non-negative number")
+   if(a0<0) stop("a0 must be a non-negative number")
+   if(b0<0) stop("b0 must be a non-negative number")
    if(lam<=0) stop("lam must be a positive number")
    if(w<=0 || w>=1) stop("w must be a proper fraction")
    if(model.threshold<=0 || model.threshold>=1) stop("model.threshold must be a proper fraction")
@@ -106,9 +116,20 @@ geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.pr
    if(nn!=nrow(X)) stop("The number of rows of X must match with the length of y")
    if(any(any(initial>ncovar),any(initial<1))) stop("The initial model must be a subset of column numbers of X")
 
-  ys = scale(y)
-  xbar = Matrix::colMeans(X)
-
+  xbar = colMeans(X)
+  if(lam0==0){
+    mult.c=0.5*(nn-1)+a0
+    add.c=2*b0
+     if(b0==0){
+     ys = scale(y)
+    }else{
+      ys = y-mean(y)
+      }
+    }else{
+        ys = y-mean(y)
+        mult.c=0.5*nn+a0
+        add.c=2*b0+(nn*lam0*mean(y)^2)/(nn+lam0)
+      }
   if(class(X)[1] == "dgCMatrix") {
     D = 1/sqrt(colMSD_dgc(X,xbar))
   }  else   {
@@ -116,7 +137,7 @@ geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.pr
     D = 1/D
   }
   Xty = D*as.numeric(crossprod(X,ys))
-
+  yty=sum(ys^2)
 curr = sort.int(initial) # Initial value
 eps = eps
 log.post<-numeric(n.iter)
@@ -124,23 +145,23 @@ size <- integer(n.iter)
 indices <- integer(n.iter*20)
 ctr.ind=0
 
-logp.add.cur=addvar_vs(curr, x=X, ys=ys, xty=Xty, lam=lam, w=w, D=D, xbar=xbar)$logp
-logp.del.cur=delvar_vs(curr, x=X, xty=Xty, lam=lam, w=w, D=D, xbar=xbar)$logp
-logp.swap.cur=swapvar_vs(curr, ys=ys, x=X, xty=Xty, lam=lam, w=w, D=D, xbar=xbar,swapOnly=T)$logp
+logp.add.cur=addvar_vs(curr, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
+logp.del.cur=delvar_vs(curr, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
+logp.swap.cur=swapvar_vs(curr, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
 calc=thet_vs(curr,logp.add.cur,logp.del.cur,logp.swap.cur,ncovar,symm,move.prob)
 prod_c=calc[,1]
 theta_c=calc[,2]
-logp_curr=logp.vs(curr,X,ys,lam,w)
+logp_curr=logp.vs(curr,X,ys,lam0,a0,b0,lam,w)
         for (i in 1:n.iter) {
-          proposed = samp_phi_vs(curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,ys,lam,w,eps)
-          logp.add.p=addvar_vs(proposed, x=X, ys=ys, xty=Xty, lam=lam, w=w, D=D, xbar=xbar)$logp
-          logp.del.p=delvar_vs(proposed, x=X, xty=Xty, lam=lam, w=w, D=D, xbar=xbar)$logp
-          logp.swap.p=swapvar_vs(proposed, ys=ys, x=X, xty=Xty, lam=lam, w=w, D=D, xbar=xbar,swapOnly=T)$logp
+          proposed = samp_phi_vs(curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps)
+          logp.add.p=addvar_vs(proposed, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
+          logp.del.p=delvar_vs(proposed, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
+          logp.swap.p=swapvar_vs(proposed, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
           calc=thet_vs(proposed,logp.add.p,logp.del.p,logp.swap.p,ncovar,symm,move.prob)
           prod_p=calc[,1]
           theta_p=calc[,2]
-          logp_prop=logp.vs(proposed,X,ys,lam,w)
-          logr = logp_prop+log_phi_vs(curr,proposed,prod_p,theta_p,ncovar,logp.add.p,logp.del.p,logp.swap.p,symm,move.prob,X,ys,lam,w,eps)-logp_curr-log_phi_vs(proposed,curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,ys,lam,w,eps)
+          logp_prop=logp.vs(proposed,X,ys,lam0,a0,b0,lam,w)
+          logr = logp_prop+log_phi_vs(curr,proposed,prod_p,theta_p,ncovar,logp.add.p,logp.del.p,logp.swap.p,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps)-logp_curr-log_phi_vs(proposed,curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps)
             if (logr >=0 || log(runif(1)) < logr){
                 curr = proposed
                 prod_c=prod_p
@@ -174,20 +195,20 @@ logp_curr=logp.vs(curr,X,ys,lam,w)
    model.WAM<-which(WMIP>=model.threshold)
    if (length(med.model)==0){
      beta.med<-numeric((ncovar+1))
-     beta.med[1] <- mean(y)
+     beta.med[1] <- (nn/(nn+lam0))*mean(y)
    }else{
      x.est <- cbind(rep(1, nn), scale(X[, med.model], center = xbar[med.model], scale = 1/D[med.model]))
-     beta <- solve(crossprod(x.est) + lam*diag(c(0, rep(1, length(med.model)))), crossprod(x.est, y))
+     beta <- solve(crossprod(x.est) + diag(c(lam0, lam*rep(1, length(med.model)))), crossprod(x.est, y))
      beta.med<-numeric(ncovar)
      beta.med[med.model]<-beta[-1] * D[med.model]
      beta.med <- c(beta[1]-sum(beta[-1]*xbar[med.model]*D[med.model]),beta.med)
    }
    if (length(model.WAM)==0){
      beta.wam<-numeric((ncovar+1))
-     beta.wam[1] <- mean(y)
+     beta.wam[1] <- (nn/(nn+lam0))*mean(y)
    }else{
      x.est1 <- cbind(rep(1, nn), scale(X[, model.WAM], center = xbar[model.WAM], scale = 1/D[model.WAM]))
-     beta1 <- solve(crossprod(x.est1) + lam*diag(c(0, rep(1, length(model.WAM)))), crossprod(x.est1, y))
+     beta1 <- solve(crossprod(x.est1) + diag(c(lam0, lam*rep(1, length(model.WAM)))), crossprod(x.est1, y))
      beta.wam<-numeric(ncovar)
      beta.wam[model.WAM]<-beta1[-1] * D[model.WAM]
      beta.wam <- c(beta1[1]-sum(beta1[-1]*xbar[model.WAM]*D[model.WAM]),beta.wam)

@@ -1,7 +1,7 @@
 Package: geommc
 Title: Geometric Markov Chain Sampling
 Type: Package
-Version: 0.0.1
+Version: 0.1.1
 Authors@R: 
     person("Vivekananda", "Roy", , "vroy@iastate.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2964-9503"))

@@ -5,7 +5,7 @@
 \title{The log-unnormalized posterior probability of a model for Bayesian
 variable selection.}
 \usage{
-logp.vs(model, X, y, lam, w)
+logp.vs(model, X, y, lam0 = 0, a0 = 0, b0 = 0, lam, w)
 }
 \arguments{
 \item{model}{The indices of active variables.}
@@ -13,6 +13,12 @@ logp.vs(model, X, y, lam, w)
 \item{X}{The \eqn{n\times p} covariate matrix without intercept.}
 
 \item{y}{The response vector of length \eqn{n}.}
+
+\item{lam0}{The precision parameter for \eqn{\beta_0}. Default: 0 (corresponding to improper uniform prior).}
+
+\item{a0}{The shape parameter for prior on \eqn{\sigma^2}. Default: 0.}
+
+\item{b0}{The scale parameter for prior on \eqn{\sigma^2}. Default: 0.}
 
 \item{lam}{The slab precision parameter.}
 

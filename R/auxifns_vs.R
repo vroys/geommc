@@ -89,10 +89,10 @@ dens_f_vs<- function(proposed,curr,ncovar,symm,move.prob){
       }
 }
 
-dens_g_vs<- function(proposed,logp.add,logp.del,logp.swap,X,ys,lam,w){
+dens_g_vs<- function(proposed,logp.add,logp.del,logp.swap,X,ys,lam0,a0,b0,lam,w){
   logp.best<-max(logp.add,logp.del,logp.swap)
 cc<-sum(exp(logp.add-logp.best))+sum(exp(logp.del-logp.best))+sum(exp(logp.swap-logp.best))
-  return(exp(logp.vs(proposed,X,ys,lam,w)-logp.best)/cc)
+  return(exp(logp.vs(proposed,X,ys,lam0,a0,b0,lam,w)-logp.best)/cc)
 }
 
 samp_g_vs=function(model,ncovar,logp.add,logp.del,logp.swap){
@@ -140,11 +140,11 @@ model=sort.int(setdiff(union(model,swapout),swapin))
 }
 
 #h(x|curr) with prod_curr #this returns a vector of length k
-dens_h_vs=function(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w){
+dens_h_vs=function(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w){
   kk=length(prod)
   val=numeric(kk)
   ind.j=which(prod<1)
-  val[ind.j]=(sqrt(dens_g_vs(prop,logp.add,logp.del,logp.swap,X,ys,lam,w)[ind.j]) - prod[ind.j]*sqrt(dens_f_vs(prop,curr,ncovar,symm,move.prob)))^2/(1-prod[ind.j]^2)
+  val[ind.j]=(sqrt(dens_g_vs(prop,logp.add,logp.del,logp.swap,X,ys,lam0,a0,b0,lam,w)[ind.j]) - prod[ind.j]*sqrt(dens_f_vs(prop,curr,ncovar,symm,move.prob)))^2/(1-prod[ind.j]^2)
     return(val)
 }
 #sample from u(.|curr)
@@ -153,30 +153,30 @@ samp_u_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob
     else return(samp_f_vs(curr,ncovar,symm,move.prob))
 }
 #sample from h(.|curr)#is called only if prod[kk]<1
-samp_h_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w,kk=1){
+samp_h_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w,kk=1){
     success <- FALSE
     while (!success) {
           #M= (1+prod^2)/(1-prod^2)
             prop=samp_u_vs(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,kk)
-            success <- log(runif(1)) < log(dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w)[kk])+log(1-prod[kk]^2)-log(dens_g_vs(prop,logp.add,logp.del,logp.swap,X,ys,lam,w)[kk]+ prod[kk]^2*dens_f_vs(prop,curr,ncovar,symm,move.prob))
+            success <- log(runif(1)) < log(dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w)[kk])+log(1-prod[kk]^2)-log(dens_g_vs(prop,logp.add,logp.del,logp.swap,X,ys,lam0,a0,b0,lam,w)[kk]+ prod[kk]^2*dens_f_vs(prop,curr,ncovar,symm,move.prob))
   }
   return(prop)
 }
 
 
-log_phi_vs = function(prop,curr,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w,eps){
+log_phi_vs = function(prop,curr,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps){
   kk=1
   val=0
   if(eps==1){
-    val=log(prod^2*dens_f_vs(prop,curr,ncovar,symm,move.prob)+(1-prod^2)*dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w))
+    val=log(prod^2*dens_f_vs(prop,curr,ncovar,symm,move.prob)+(1-prod^2)*dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w))
     } else{
       coef=(cos(eps*theta))^2
-      val=log(coef*dens_f_vs(prop,curr,ncovar,symm,move.prob)+(1-coef)*dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w))
+      val=log(coef*dens_f_vs(prop,curr,ncovar,symm,move.prob)+(1-coef)*dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w))
     }
   return(sum(val))
 }
 #sample from phi(|curr)
-samp_phi_vs = function(model,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w,eps){
+samp_phi_vs = function(model,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps){
   kk=1
   s.a=1
     if(prod[s.a]==1){
@@ -187,7 +187,7 @@ samp_phi_vs = function(model,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,
         if(u<=prod[s.a]^2){
             return(samp_f_vs(model,ncovar,symm,move.prob))
         }else
-        {return(samp_h_vs(model,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w,s.a))
+        {return(samp_h_vs(model,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w,s.a))
             }
     }else{
         coef=(cos(eps*theta[s.a]))^2
@@ -195,7 +195,7 @@ samp_phi_vs = function(model,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,
         if(u<=coef){
           return(samp_f_vs(model,ncovar,symm,move.prob))
         }else{
-          return(samp_h_vs(model,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam,w,s.a))
+          return(samp_h_vs(model,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,ys,lam0,a0,b0,lam,w,s.a))
           }
     }
     }
@@ -203,23 +203,19 @@ samp_phi_vs = function(model,prod,theta,ncovar,logp.add,logp.del,logp.swap,symm,
 ### A function to compute the log (unormalized) posterior probabilities for all models
 ### in the "added" set for the current model.
 ### codes of addvar_vs, delvar_vs and swapvar_vs are modified from the codes in the R package bravo
-addvar_vs <- function (model, x, ys, xty, lam, w, R0 = NULL, v0 = NULL, D,xbar){
+addvar_vs <- function (model, x, yty, xty, mult.c, add.c, lam, w, R0 = NULL, v0 = NULL, D,xbar){
   n <- nrow(x)
   p <- ncol(x)
   p0 = length(model)
 
-
-  yty <- n - 1
   xtx <- n - 1
   logw <- log(w/(1-w))
 
   if (p0 == 0) { # There is no variable in the model
     R1 <- sqrt(xtx+lam)
-    RSS <- yty - (xty/R1)^2
-    logp <- 0.5*log(lam)-0.5*log(xtx+lam)-0.5*(n-1)*log(RSS) + logw
-    j = which.max(logp)
-    return(list(logp=logp,R=sparseMatrix(i=1,j=1,x=R1,triangular=T),
-                v=xty[j]/R1,which.max=j, RSS=RSS))
+    RSS <- yty - (xty/R1)^2+add.c
+    logp <- 0.5*log(lam)-0.5*log(xtx+lam)-mult.c*log(RSS) + logw
+    return(list(logp=logp))
   }
 
   # else there's at least one variable
@@ -257,42 +253,31 @@ addvar_vs <- function (model, x, ys, xty, lam, w, R0 = NULL, v0 = NULL, D,xbar){
   u <- (xty-crossprod(S, v0))/s0
   u[model] = 0;
   logdetR1 <- sum(log(diag(R0))) + log(s0)
-  RSS <- {yty - sum(v0^2)} - u^2
+  RSS <- {yty - sum(v0^2)} - u^2+add.c
   RSS[model] = 1 # whatever, they are going to be set to -Inf
-  logp <- 0.5*(p0+1)*log(lam) - logdetR1 - 0.5*(n-1)*log(RSS) + (p0+1)*logw
+  logp <- 0.5*(p0+1)*log(lam) - logdetR1 - mult.c*log(RSS) + (p0+1)*logw
   logp = as.numeric(logp)
   logp[model] <- -Inf
-  j = which.max(logp)
-
-  # now update R1tinv and v1 and return as a list
-  sj = S[,j]
-  s0j = s0[j]
-  R1 = rbind(cbind(R0,sj),c(rep(0,p0),s0j))
-  R1 =as.matrix(R1)                       #methods::as(R1,"dtCMatrix") depricated
-  v1 = c(v0,u[j])
-
-  RSS[model] <- -Inf
-  return(list(logp=logp, R = R1, v=v1, which.max=j, RSS=RSS))
+  return(list(logp=logp))
 }
 ### A function to compute the log (unormalized) posterior probabilities for all models
 ### in the "deleted" set for the current model.
-delvar_vs <- function(model, x, xty, lam, w, D, xbar) {
+delvar_vs <- function(model, x, yty, xty, mult.c, add.c, lam, w, D, xbar) {
   n <- nrow(x)
   p <- ncol(x)
   p0 <- length(model)
-  yty <- n-1
   logw <- log(w/(1-w))
   logp <- numeric(p)
   if (p0 == 0) {  ##added it
     logp <- rep(-Inf,p) ##added it
-    RSS.del <- NULL ##added it
+    #RSS.del <- NULL ##added it
   }else{
     if (p0 == 1) {
-    logp.del <- -(n-1)/2*log(yty)
-    RSS.del <- NULL ##added it
+    logp.del <- -mult.c*log(add.c+yty)
+    #RSS.del <- NULL ##added it
   } else {
     logp.del <- numeric(p0)
-    RSS.del <- numeric(p0)
+    #RSS.del <- numeric(p0)
     x0 <- scale(x[, model, drop=F])
     xgx <- crossprod(x0) + lam*diag(p0)
     for (j in 1:p0) {
@@ -303,41 +288,39 @@ delvar_vs <- function(model, x, xty, lam, w, D, xbar) {
       if(is.nan(logdetR0)) logdetR0 = Inf
       RSS0 <- yty - sum(backsolve(R0, xty[model.temp], transpose = T)^2)
       if(RSS0 <= 0) RSS0 = .Machine$double.eps
-      logp.del[j] <- 0.5*(p0-1)*log(lam) - logdetR0 - 0.5*(n-1)*log(RSS0) + (p0-1)*logw
-      RSS.del[j] <- RSS0
+      logp.del[j] <- 0.5*(p0-1)*log(lam) - logdetR0 - mult.c*log(RSS0+add.c) + (p0-1)*logw
+      #RSS.del[j] <- RSS0
     }
   }
   logp[model] <- logp.del
   logp[-model] <- -Inf
-  RSS.del[model] <- RSS.del
-    RSS.del[-model] <- -Inf
   }
-  return(list(logp=logp, RSS=RSS.del))
+  return(list(logp=logp))
 }
 
 
 ### A function to compute the log (unormalized) posterior probabilities for all models
 ### in the "swapped" set for the current model.
-swapvar_vs <- function(model, x, ys, xty, lam, w, D, xbar, swapOnly=F) {
+swapvar_vs <- function(model, x, yty, xty, mult.c, add.c, lam, w, D, xbar) {
   n <- nrow(x)
   p <- ncol(x)
   p0 <- length(model)
   xtx <- n - 1
-  yty <- n-1
+  #yty <- n-1
   logw <- log(w/(1-w))
     if (p0 == 0) {  ##added it
     logp <- rep(-Inf,p) ##added it
-    RSS.mat <- NULL ##added it
+   # RSS.mat <- NULL ##added it
   }else{
-  if (swapOnly == T) {
+  #if (swapOnly == T) {
     logp <- matrix(0, nrow=p, ncol=p0)
-    RSS.mat <- matrix(0, nrow=p, ncol=p0)
+    #RSS.mat <- matrix(0, nrow=p, ncol=p0)
     if (p0 == 1) {
-      r1 <- addvar_vs(model=NULL, x=x, ys=ys, xty=xty, lam=lam, w=w, D=D, xbar=xbar)
+      r1 <- addvar_vs(model=NULL, x=x, yty=yty, xty=xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)
       logp[, 1] <- r1$logp
       logp[model, 1] <- -Inf
-      RSS.mat[, 1] <- r1$RSS
-      RSS.mat[model, 1] <- -Inf
+      #RSS.mat[, 1] <- r1$RSS
+      #RSS.mat[model, 1] <- -Inf
     } else {
       x0 <- scale(x[, model, drop=F])
       xgx <- crossprod(x0) + lam*diag(p0)
@@ -365,73 +348,15 @@ swapvar_vs <- function(model, x, ys, xty, lam, w, D, xbar, swapOnly=F) {
         u <- (xty-crossprod(S, v0))/s0
         u[model] = 0;
         logdetR1 <- sum(log(diag(R0))) + log(s0)
-        RSS <- {yty - sum(v0^2)} - u^2
+        RSS <- {yty - sum(v0^2)} - u^2+add.c
         RSS[model] = 1 # whatever, they are going to be set to -Inf
-        logp1 <- 0.5*(p0)*log(lam) - logdetR1 - 0.5*(n-1)*log(RSS) + p0*logw
+        logp1 <- 0.5*(p0)*log(lam) - logdetR1 - mult.c*log(RSS) + p0*logw
         logp[, j] = as.numeric(logp1)
         logp[model, j] <- -Inf
-        RSS.mat[, j] <- RSS
-        RSS.mat[model, j] <- -Inf
+        #RSS.mat[, j] <- RSS
+        #RSS.mat[model, j] <- -Inf
       }
     }
-  } else {
-    logp <- matrix(0, nrow=p, ncol=p0+1)
-    RSS.mat <- matrix(0, nrow=p, ncol=p0+1)
-    if (p0 == 1) {
-      logp.del <- -(n-1)/2*log(yty)
-      RSS.del <- 0
-      r1 <- addvar_vs(model=NULL, x=x, ys=ys, xty=xty, lam=lam, w=w, D=D, xbar=xbar)
-      logp[, 2] <- r1$logp
-      logp[model, 2] <- -Inf
-      RSS.mat[, 2] <- r1$RSS
-      RSS.mat[model, 2] <- -Inf
-    } else {
-      logp.del <- numeric(p0)
-      RSS.del <- numeric(p0)
-      x0 <- scale(x[, model, drop=F])
-      xgx <- crossprod(x0) + lam*diag(p0)
-      x0x1 <- crossprod(x0, x)
-      x0x <- x0x1 %*% Diagonal(p,x=D)
-      for (j in 1:p0) {
-        # delete one variable in the current model
-        model.temp <- model[-j]
-        R0 <- chol(xgx[-j, -j])
-        logdetR0 <- sum(log(diag(R0)))
-        if(is.nan(logdetR0)) logdetR0 = Inf
-        v0 <- backsolve(R0, xty[model.temp], transpose = T)
-        RSS0 <- yty - sum(backsolve(R0, xty[model.temp], transpose = T)^2)
-        if(RSS0 <= 0) RSS0 = .Machine$double.eps
-        logp.del[j] <- 0.5*(p0-1)*log(lam) - logdetR0 - 0.5*(n-1)*log(RSS0) + (p0-1)*logw
-        RSS.del[j] <- RSS0
-
-        # add back another variable from the remaning variables
-        S <- backsolve(R0, x0x[-j, , drop=F], transpose = T)
-        if(length(model.temp) == 1) S = matrix(S, nrow = 1)
-        if(class(S)[1] == "dgeMatrix") {
-          sts <- colSumSq_dge(S@x,S@Dim)
-        } else {
-          sts <- colSumSq_matrix(S)
-        }
-        sts[model] <- 0;
-        s0 <- sqrt({xtx+lam} - sts)
-
-        u <- (xty-crossprod(S, v0))/s0
-        u[model] = 0;
-        logdetR1 <- sum(log(diag(R0))) + log(s0)
-        RSS <- {yty - sum(v0^2)} - u^2
-        RSS[model] = 1 # whatever, they are going to be set to -Inf
-        logp1 <- 0.5*(p0)*log(lam) - logdetR1 - 0.5*(n-1)*log(RSS) + p0*logw
-        logp[, j+1] = as.numeric(logp1)
-        logp[model, j+1] <- -Inf
-        RSS.mat[, j+1] <- RSS
-        RSS.mat[model, j+1] <- -Inf
-      }
-    }
-    logp[model, 1] <- logp.del
-    logp[-model, 1] <- -Inf
-    RSS.mat[model, 1] <- RSS.del
-    RSS.mat[-model, 1] <- -Inf
   }
-  }
-  return(list(logp=logp, RSS=RSS.mat))
+  return(list(logp=logp))
 }

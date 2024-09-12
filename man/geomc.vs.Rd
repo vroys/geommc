@@ -15,6 +15,9 @@ geomc.vs(
   symm = TRUE,
   move.prob = c(0.4, 0.4, 0.2),
   model.threshold = 0.5,
+  lam0 = 0,
+  a0 = 0,
+  b0 = 0,
   lam = nrow(X)/ncol(X)^2,
   w = sqrt(nrow(X))/ncol(X)
 )
@@ -43,6 +46,12 @@ move.prob is used only when symm is set to False.}
 the median model (median.model) and the weighted average model (wam).
 A covariate will be included in median.model (wam) if its marginal inclusion
 probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.}
+
+\item{lam0}{The precision parameter for \eqn{\beta_0}. Default: 0 (corresponding to improper uniform prior).}
+
+\item{a0}{The shape parameter for prior on \eqn{\sigma^2}. Default: 0.}
+
+\item{b0}{The scale parameter for prior on \eqn{\sigma^2}. Default: 0.}
 
 \item{lam}{The slab precision parameter. Default: \eqn{n/p^2}
 as suggested by the theoretical results of Li, Dutta, Roy (2023).}
@@ -74,11 +83,15 @@ for variable selection based on a hierarchical Gaussian linear model with priors
 on the regression coefficients as well as on the model space as follows:
 \deqn{y | X, \beta_0,\beta,\gamma,\sigma^2,w,\lambda \sim N(\beta_01 + X_\gamma\beta_\gamma,\sigma^2I_n)}
 \deqn{\beta_i|\beta_0,\gamma,\sigma^2,w,\lambda \stackrel{indep.}{\sim} N(0, \gamma_i\sigma^2/\lambda),~i=1,\ldots,p,}
-\deqn{(\beta_0,\sigma^2)|\gamma,w,p \sim p(\beta_0,\sigma^2) \propto 1/\sigma^2}
+\deqn{\beta_0|\gamma,\sigma^2,w,\lambda \sim N(0, \sigma^2/\lambda_0)}
+\deqn{\sigma^2|\gamma,w,\lambda \sim Inv-Gamma (a_0, b_0)}
 \deqn{\gamma_i|w,\lambda \stackrel{iid}{\sim} Bernoulli(w)}
 where \eqn{X_\gamma} is the \eqn{n \times |\gamma|} submatrix of \eqn{X} consisting of
 those columns of \eqn{X} for which \eqn{\gamma_i=1} and similarly, \eqn{\beta_\gamma} is the
-\eqn{|\gamma|} subvector of \eqn{\beta} corresponding to \eqn{\gamma}.
+\eqn{|\gamma|} subvector of \eqn{\beta} corresponding to \eqn{\gamma}. The density \eqn{\pi(\sigma^2)} of
+\eqn{\sigma^2 \sim Inv-Gamma (a_0, b_0)} has the form \eqn{\pi(\sigma^2) \propto (\sigma^2)^{-a_0-1} \exp(-b_0/\sigma^2)}.
+The functions in the package also allow the non-informative prior \eqn{(\beta_{0}, \sigma^2)|\gamma, w \sim 1 / \sigma^{2}}
+which is obtained by setting \eqn{\lambda_0=a_0=b_0=0}.
 geomc.vs provides MCMC samples from the posterior pmf of the models \eqn{P(\gamma|y)}, which is available
 up to a normalizing constant.
 geomc.vs also returns the marginal inclusion probabilities (mip)

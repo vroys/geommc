@@ -29,6 +29,9 @@
 
 logp.vs <- function(model,X,y,lam0=0, a0=0, b0=0,lam,w)
 {
+  if(lam0<0) stop("lam0 must be a non-negative number")
+  if(a0<0) stop("a0 must be a non-negative number")
+  if(b0<0) stop("b0 must be a non-negative number")
   if(lam<=0) stop("lam must be a positive number")
   if(w<=0 || w>=1) stop("w must be a proper fraction")
   if(is.logical(model)) model = which(model);

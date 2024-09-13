@@ -58,7 +58,7 @@
 #' available in closed form. geomc.vs returns the posterior means of \eqn{\beta} conditional on the median.model and
 #' the wam.
 #' @return A list with components
-#' \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as \eqn{p \times}n.iter sparse \code{dgCMatrix}.}
+#' \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a \eqn{p \times}n.iter sparse \code{lgCMatrix}.}
 #' \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
 #' \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 #' \item{\code{median.model}}{The  median probability model based on post burnin samples.}
@@ -138,6 +138,7 @@ geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.pr
   }
   Xty = D*as.numeric(crossprod(X,ys))
   yty=sum(ys^2)
+  logw = log(w/(1-w))
 curr = sort.int(initial) # Initial value
 eps = eps
 log.post<-numeric(n.iter)
@@ -145,23 +146,23 @@ size <- integer(n.iter)
 indices <- integer(n.iter*20)
 ctr.ind=0
 
-logp.add.cur=addvar_vs(curr, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
-logp.del.cur=delvar_vs(curr, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
-logp.swap.cur=swapvar_vs(curr, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
+logp.add.cur=addvar_vs(curr,n=nn,p=ncovar, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
+logp.del.cur=delvar_vs(curr, p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
+logp.swap.cur=swapvar_vs(curr, n=nn,p=ncovar, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
 calc=thet_vs(curr,logp.add.cur,logp.del.cur,logp.swap.cur,ncovar,symm,move.prob)
 prod_c=calc[,1]
 theta_c=calc[,2]
-logp_curr=logp.vs(curr,X,ys,lam0,a0,b0,lam,w)
+logp_curr=logp.vs.in(curr,X,yty,Xty,mult.c,add.c,lam,logw)
         for (i in 1:n.iter) {
-          proposed = samp_phi_vs(curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps)
-          logp.add.p=addvar_vs(proposed, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
-          logp.del.p=delvar_vs(proposed, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
-          logp.swap.p=swapvar_vs(proposed, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, w=w, D=D, xbar=xbar)$logp
+          proposed = samp_phi_vs(curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)
+          logp.add.p=addvar_vs(proposed, n=nn,p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
+          logp.del.p=delvar_vs(proposed, p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
+          logp.swap.p=swapvar_vs(proposed, n=nn,p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
           calc=thet_vs(proposed,logp.add.p,logp.del.p,logp.swap.p,ncovar,symm,move.prob)
           prod_p=calc[,1]
           theta_p=calc[,2]
-          logp_prop=logp.vs(proposed,X,ys,lam0,a0,b0,lam,w)
-          logr = logp_prop+log_phi_vs(curr,proposed,prod_p,theta_p,ncovar,logp.add.p,logp.del.p,logp.swap.p,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps)-logp_curr-log_phi_vs(proposed,curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,ys,lam0,a0,b0,lam,w,eps)
+          logp_prop=logp.vs.in(proposed,X,yty,Xty,mult.c,add.c,lam,logw)
+          logr = logp_prop+log_phi_vs(curr,proposed,prod_p,theta_p,ncovar,logp.add.p,logp.del.p,logp.swap.p,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)-logp_curr-log_phi_vs(proposed,curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)
             if (logr >=0 || log(runif(1)) < logr){
                 curr = proposed
                 prod_c=prod_p
@@ -182,7 +183,7 @@ logp_curr=logp.vs(curr,X,ys,lam0,a0,b0,lam,w)
 
    indices <- indices[indices>0]
   cumsize <- cumsum(size)
-   samps <- sparseMatrix(i=indices,p = c(0,cumsize),index1 = T,dims = c(ncovar,n.iter), x = 1)
+   samps <- sparseMatrix(i=indices,p = c(0,cumsize),index1 = T,dims = c(ncovar,n.iter), x = T)
    samps.postburn<-samps[,burnin:n.iter,drop=FALSE]
    log.postburn<-log.post[burnin:n.iter]
    logpost.uniq.ind <-  !duplicated(log.postburn)

@@ -40,6 +40,7 @@ logp.vs <- function(model,X,y,lam0=0, a0=0, b0=0,lam,w)
   if(any(any(model>ncol(X)),any(model<1))) stop("The model must be a subset of column numbers of X")
   
   nn = nrow(X)
+  if(nn!=length(y)) stop("The number of rows of X must match with the length of y")
   logw = log(w/(1-w))
   if(lam0==0){
     mult.c=0.5*(nn-1)+a0
@@ -57,7 +58,6 @@ logp.vs <- function(model,X,y,lam0=0, a0=0, b0=0,lam,w)
   p0 = length(model)
   if(p0 == 0)
       return(-mult.c*log(add.c+sum(ys^2)))
-    #return(-0.5*(nn-1)*log(nn-1))
 x.g = scale(X[,model,drop=FALSE])
   xtx = crossprod(x.g) + diag(x = lam,nrow = p0)
 

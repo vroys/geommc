@@ -60,7 +60,7 @@ as suggested by the theoretical results of Li, Dutta, Roy (2023).}
 }
 \value{
 A list with components
-\item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as \eqn{p \times}n.iter sparse \code{dgCMatrix}.}
+\item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a \eqn{p \times}n.iter sparse \code{lgCMatrix}.}
 \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
 \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 \item{\code{median.model}}{The  median probability model based on post burnin samples.}

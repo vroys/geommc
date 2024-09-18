@@ -16,16 +16,17 @@
 #' @param symm indicates if the base density is of symmetric RW-MH. Default: True.
 #' @param move.prob is the vector of ('addition', 'deletion', 'swap') move probabilities. Default: (0.4,0.4,0.2).
 #' move.prob is used only when symm is set to False.
-#' @param model.threshold The threshold probability to select the covariates for
-#' the median model (median.model) and the weighted average model (wam).
-#' A covariate will be included in median.model (wam) if its marginal inclusion
-#' probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.
 #' @param lam0 The precision parameter for \eqn{\beta_0}. Default: 0 (corresponding to improper uniform prior).
 #' @param a0 The shape parameter for prior on \eqn{\sigma^2}. Default: 0.
 #' @param b0 The scale parameter for prior on \eqn{\sigma^2}. Default: 0.
 #' @param lam The slab precision parameter. Default: \eqn{n/p^2}
 #' as suggested by the theoretical results of Li, Dutta, Roy (2023).
 #' @param w The prior inclusion probability of each variable. Default: \eqn{\sqrt{n}/p}.
+#' @param model.summary If true, additional summaries are returned. Default: FALSE.
+#' @param model.threshold The threshold probability to select the covariates for
+#' the median model (median.model) and the weighted average model (wam).
+#' A covariate will be included in median.model (wam) if its marginal inclusion
+#' probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.
 #' @details
 #' geomc.vs provides MCMC samples using the geometric MH algorithm of Roy (2024)
 #' for variable selection based on a hierarchical Gaussian linear model with priors placed
@@ -41,33 +42,36 @@
 #' \eqn{\sigma^2 \sim Inv-Gamma (a_0, b_0)} has the form \eqn{\pi(\sigma^2) \propto (\sigma^2)^{-a_0-1} \exp(-b_0/\sigma^2)}.
 #'  The functions in the package also allow the non-informative prior \eqn{(\beta_{0}, \sigma^2)|\gamma, w \sim 1 / \sigma^{2}} 
 #'  which is obtained by setting \eqn{\lambda_0=a_0=b_0=0}.
-#' geomc.vs provides MCMC samples from the posterior pmf of the models \eqn{P(\gamma|y)}, which is available
+#' geomc.vs provides the empirical MH acceptance rate and MCMC samples from the posterior pmf of the models \eqn{P(\gamma|y)}, which is available
 #' up to a normalizing constant.
 
-#' geomc.vs also returns the marginal inclusion probabilities (mip)
-#' computed by the Monte Carlo average as well as the weighted marginal inclusion
-#' probabilities (wmip) computed with weights \deqn{w_i =
-#' P(\gamma^{(i)}|y)/\sum_{k=1}^K P(\gamma^{(k)}|y), i=1,2,...,K} where \eqn{K} is the number of distinct
-#' models sampled. Thus, based on the samples \eqn{\gamma^{(k)}, k=1,2,...,n.iter} mip for the \eqn{j}th variable is \deqn{mip_j =
-#' \sum_{k=1}^{n.iter} I(\gamma^{(k)}_j = 1)/n.iter} and
-#' wmip is as \deqn{wmip_j =
+#' If \eqn{\code{model.summary}} is set TRUE, geomc.vs also returns other model summaries. In particular, it returns the 
+#' marginal inclusion probabilities (mip) computed by the Monte Carlo average as well as the weighted marginal 
+#' inclusion probabilities (wmip) computed with weights \deqn{w_i =
+#' P(\gamma^{(i)}|y)/\sum_{k=1}^K P(\gamma^{(k)}|y), i=1,2,...,K} where \eqn{\gamma^{(k)}, k=1,2,...,K} are the distinct
+#' models sampled. Thus, if \eqn{N_k} is the no. of times the \eqn{k}th distinct model \eqn{\gamma^{(k)}} is repeated in the MCMC samples,
+#' the mip for the \eqn{j}th variable is \deqn{mip_j =
+#' \sum_{k=1}^{K} N_k I(\gamma^{(k)}_j = 1)/n.iter} and
+#' wmip for the \eqn{j}th variable is \deqn{wmip_j =
 #' \sum_{k=1}^K w_k I(\gamma^{(k)}_j = 1).}
 #' The median.model is the model containing variables \eqn{j} with \eqn{mip_j >
 #' \code{model.threshold}} and the wam is the model containing variables \eqn{j} with \eqn{wmip_j >
-#' \code{model.threshold}}. The conditional posterior mean of \eqn{\beta} given a model is
-#' available in closed form. geomc.vs returns the posterior means of \eqn{\beta} conditional on the median.model and
-#' the wam.
+#' \code{model.threshold}}. Note that \eqn{E(\beta|\gamma, y)}, the conditional posterior mean of \eqn{\beta} given a model \eqn{\gamma} is
+#' available in closed form (see Li, Dutta, Roy (2023) for details). geomc.vs returns two estimates (beta.mean, beta.wam) of the posterior mean 
+#' of \eqn{\beta} computed as
+#' \deqn{ beta.mean = \sum_{k=1}^{K} N_k E(\beta|\gamma^{(k)},y)/n.iter} and
+#' \deqn{beta.wam = \sum_{k=1}^K w_k E(\beta|\gamma^{(k)},y),} respectively.
 #' @return A list with components
 #' \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a \eqn{p \times}n.iter sparse \code{lgCMatrix}.}
 #' \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
 #' \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 #' \item{\code{median.model}}{The  median probability model based on post burnin samples.}
-#' \item{\code{beta.med}}{The posterior  mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
-#'   coefficients)) conditional on the median.model based on post burnin samples.}
+#' \item{\code{beta.mean}}{The Monte Carlo estimate of posterior  mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
+#'   coefficients)) based on post burnin samples.}
 #'   \item{\code{wmip}}{The \eqn{p} vector of weighted marginal inclusion probabilities of all variables based on post burnin samples.}
 #' \item{\code{wam}}{The weighted average model based on post burnin samples.}
-#' \item{\code{beta.wam}}{The posterior  mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
-#'   coefficients)) conditional on the wam based on post burnin samples.}
+#' \item{\code{beta.wam}}{The model probability weighted estimate of posterior mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
+#'   coefficients)) based on post burnin samples.}
 #' \item{\code{log.post}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
 #'   at the samples.}
 #' @author Vivekananda Roy
@@ -86,18 +90,18 @@
 #' xone <- matrix(rnorm(n*p), n, p)
 #' X <- sqrt(1-rho)*xone + sqrt(rho)*rnorm(n)
 #' y <- 0.5 + X %*% TrueBeta + rnorm(n)
-#' result <- geomc.vs(X=X, y=y)
+#' result <- geomc.vs(X=X, y=y,model.summary = TRUE)
 #' result$samples # the MCMC samples
 #' result$acceptance.rate #the acceptance.rate
 #' result$mip #marginal inclusion probabilities
 #' result$wmip #weighted marginal inclusion probabilities
 #' result$median.model #the median.model
 #' result$wam #the weighted average model
-#' result$beta.med #the posterior mean of regression coefficients for the median.model
-#' result$beta.wam #the posterior mean of regression coefficients for the wam
+#' result$beta.mean #the posterior mean of regression coefficients
+#' result$beta.wam #another estimate of the posterior mean of regression coefficients
 #' result$log.post #the log (unnormalized) posterior probabilities of the MCMC samples.
 #' @export
-geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.prob=c(.4,.4,.2), model.threshold = 0.5, lam0=0, a0=0, b0=0, lam = nrow(X)/ncol(X)^2, w = sqrt(nrow(X))/ncol(X)){
+geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.prob=c(.4,.4,.2), lam0=0, a0=0, b0=0, lam = nrow(X)/ncol(X)^2, w = sqrt(nrow(X))/ncol(X), model.summary=FALSE, model.threshold = 0.5){
    if(n.iter < 1) stop("n.iter must be larger than or equal to 1")
    if(burnin < 1) stop("burnin must be larger than or equal to 1")
    if(burnin > n.iter) stop("burnin must be  smaller than or equal to n.iter")
@@ -180,39 +184,39 @@ logp_curr=logp.vs.in(curr,X,yty,Xty,mult.c,add.c,lam,logw)
           ctr.ind <- ctr.ind+size[i]
              }
         }
+indices <- indices[indices>0]
+cumsize <- cumsum(size)
+samps <- sparseMatrix(i=indices,p = c(0,cumsize),index1 = T,dims = c(ncovar,n.iter), x = T)
+if(!model.summary){
+  return(list(samples=samps,acceptance.rate=ctr_accep/n.iter))
+}
+samps.postburn<-samps[,burnin:n.iter,drop=FALSE]
+log.postburn<-log.post[burnin:n.iter]
+logpost.uniq.ind <-  !duplicated(log.postburn)
+log.postburn.uniq<-log.postburn[logpost.uniq.ind]
+weight.unnorm <- exp(log.postburn.uniq - max(log.postburn.uniq))
+weight <- weight.unnorm/sum(weight.unnorm)
+n.rep<-sapply(log.postburn.uniq, FUN=function(x){sum(x==log.postburn)})
+samps.uniq<-samps.postburn[,logpost.uniq.ind,drop=FALSE]
+modelsize.uniq<-colSums(samps.uniq)
+no.model.uniq<-sum(logpost.uniq.ind)
+MIP<-rowMeans(samps.postburn)
+WMIP<-as.vector(samps.postburn[,logpost.uniq.ind,drop=FALSE]%*%weight)
+med.model<-which(MIP>=model.threshold)
+model.WAM<-which(WMIP>=model.threshold)
+beta.est <- matrix(0, (ncovar+1),no.model.uniq)
 
-   indices <- indices[indices>0]
-  cumsize <- cumsum(size)
-   samps <- sparseMatrix(i=indices,p = c(0,cumsize),index1 = T,dims = c(ncovar,n.iter), x = T)
-   samps.postburn<-samps[,burnin:n.iter,drop=FALSE]
-   log.postburn<-log.post[burnin:n.iter]
-   logpost.uniq.ind <-  !duplicated(log.postburn)
-   weight.unnorm = exp(log.postburn[logpost.uniq.ind] - max(log.postburn))
-   weight = weight.unnorm/sum(weight.unnorm)
-
-   MIP=rowMeans(samps.postburn)
-   WMIP=as.vector(samps.postburn[,logpost.uniq.ind,drop=FALSE]%*%weight)
-   med.model<-which(MIP>=model.threshold)
-   model.WAM<-which(WMIP>=model.threshold)
-   if (length(med.model)==0){
-     beta.med<-numeric((ncovar+1))
-     beta.med[1] <- (nn/(nn+lam0))*mean(y)
-   }else{
-     x.est <- cbind(rep(1, nn), scale(X[, med.model], center = xbar[med.model], scale = 1/D[med.model]))
-     beta <- solve(crossprod(x.est) + diag(c(lam0, lam*rep(1, length(med.model)))), crossprod(x.est, y))
-     beta.med<-numeric(ncovar)
-     beta.med[med.model]<-beta[-1] * D[med.model]
-     beta.med <- c(beta[1]-sum(beta[-1]*xbar[med.model]*D[med.model]),beta.med)
-   }
-   if (length(model.WAM)==0){
-     beta.wam<-numeric((ncovar+1))
-     beta.wam[1] <- (nn/(nn+lam0))*mean(y)
-   }else{
-     x.est1 <- cbind(rep(1, nn), scale(X[, model.WAM], center = xbar[model.WAM], scale = 1/D[model.WAM]))
-     beta1 <- solve(crossprod(x.est1) + diag(c(lam0, lam*rep(1, length(model.WAM)))), crossprod(x.est1, y))
-     beta.wam<-numeric(ncovar)
-     beta.wam[model.WAM]<-beta1[-1] * D[model.WAM]
-     beta.wam <- c(beta1[1]-sum(beta1[-1]*xbar[model.WAM]*D[model.WAM]),beta.wam)
-     }
-        return(list(samples=samps,acceptance.rate=ctr_accep/n.iter,mip=MIP,median.model=med.model,beta.med=beta.med,wmip=WMIP,wam=model.WAM,beta.wam=beta.wam,log.post=log.post))
-        }
+for(i in 1:no.model.uniq){
+  if(modelsize.uniq[i]==0){
+    beta.est[1, i] <- (nn/(nn+lam0))*mean(y)
+  }else{
+    model_i<- samps.uniq[,i]
+    x.est <- cbind(rep(1, nn), scale(X[, model_i], center = xbar[model_i], scale = 1/D[model_i]))
+    beta <- solve(crossprod(x.est) + diag(c(lam0, lam*rep(1, modelsize.uniq[i]))), crossprod(x.est, y))
+    beta.est[c(T, model_i), i] <- c(beta[1]-sum(beta[-1]*xbar[model_i]*D[model_i]),beta[-1] * D[model_i])
+  }
+}
+beta.m<-rowSums(beta.est%*%diag(n.rep))/(n.iter-burnin+1)
+beta.wam <- rowSums(beta.est%*%diag(weight))
+return(list(samples=samps,acceptance.rate=ctr_accep/n.iter,mip=MIP,median.model=med.model,beta.mean=beta.m,wmip=WMIP,wam=model.WAM,beta.wam=beta.wam,log.post=log.post))
+}

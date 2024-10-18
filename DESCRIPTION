@@ -6,7 +6,7 @@ Authors@R:
     person("Vivekananda", "Roy", , "vroy@iastate.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2964-9503"))
 Maintainer: Vivekananda Roy <vroy@iastate.edu>           
-Date: 2024-06-12	   
+Date: 2024-10-18	   
 Description: Simulates from discrete and continuous target distributions 
         using geometric Metropolis-Hastings (MH) 
         algorithms. Users specify the target distribution 
@@ -15,7 +15,7 @@ Description: Simulates from discrete and continuous target distributions
         performing high dimensional Bayesian variable selection. 
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Imports: 
     Rcpp (>= 1.0.12),
     cubature,

@@ -56,12 +56,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rw_mc_cpp
+List rw_mc_cpp(Function log_target, NumericVector initial, int n_iter, SEXP sig, bool return_sample);
+RcppExport SEXP _geommc_rw_mc_cpp(SEXP log_targetSEXP, SEXP initialSEXP, SEXP n_iterSEXP, SEXP sigSEXP, SEXP return_sampleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Function >::type log_target(log_targetSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type initial(initialSEXP);
+    Rcpp::traits::input_parameter< int >::type n_iter(n_iterSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type sig(sigSEXP);
+    Rcpp::traits::input_parameter< bool >::type return_sample(return_sampleSEXP);
+    rcpp_result_gen = Rcpp::wrap(rw_mc_cpp(log_target, initial, n_iter, sig, return_sample));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_geommc_colSumSq_dge", (DL_FUNC) &_geommc_colSumSq_dge, 2},
     {"_geommc_colSumSq_matrix", (DL_FUNC) &_geommc_colSumSq_matrix, 1},
     {"_geommc_colMSD_dgc", (DL_FUNC) &_geommc_colMSD_dgc, 2},
     {"_geommc_colSUMIDX_dgc", (DL_FUNC) &_geommc_colSUMIDX_dgc, 1},
+    {"_geommc_rw_mc_cpp", (DL_FUNC) &_geommc_rw_mc_cpp, 5},
     {NULL, NULL, 0}
 };
 

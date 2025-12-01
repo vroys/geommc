@@ -1,7 +1,7 @@
 Package: geommc
 Title: Geometric Markov Chain Sampling
 Type: Package
-Version: 0.1.1
+Version: 1.1.1
 Authors@R: 
     person("Vivekananda", "Roy", , "vroy@iastate.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2964-9503"))
@@ -15,14 +15,13 @@ Description: Simulates from discrete and continuous target distributions
         performing high dimensional Bayesian variable selection. 
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Imports: 
     Rcpp (>= 1.0.12),
     cubature,
     magrittr,
     Matrix,
-    matrixcalc,
-    mcmc
+    numDeriv
 LinkingTo: Rcpp
 URL: https://github.com/vroys/geommc
 License: GPL (>= 3)

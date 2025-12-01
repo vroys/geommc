@@ -31,7 +31,7 @@ thet_vs=function(model,logp.add,logp.del,logp.swap,ncovar,symm,move.prob){
       prod=sum(sqrt(exp(logp.add1)/cc))*sqrt(move.prob[1]/(ncovar-dim))+sum(sqrt(exp(logp.del1)/cc))*sqrt(move.prob[2]/dim)+sum(sqrt(exp(logp.swap1)/cc))*sqrt(move.prob[3]/(dim*(ncovar-dim)))
     }
   }
-  return(unname(cbind(prod,acos(pmin(pmax(prod,0.0),1.0)))))
+  return(unname(cbind(prod,acos(pmin(pmax(prod,.Machine$double.eps),1-1e-16)))))
 }
 #model is the indices of \gamma==1
 #' @noRd

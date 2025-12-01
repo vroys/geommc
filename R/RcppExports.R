@@ -17,3 +17,7 @@ colSUMIDX_dgc <- function(mat) {
     .Call(`_geommc_colSUMIDX_dgc`, mat)
 }
 
+rw_mc_cpp <- function(log_target, initial, n_iter, sig, return_sample = FALSE) {
+    .Call(`_geommc_rw_mc_cpp`, log_target, initial, n_iter, sig, return_sample)
+}
+

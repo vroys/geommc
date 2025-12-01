@@ -73,7 +73,8 @@
 #' @return The function returns a list with the following components:
 #' \item{\code{samples}}{A matrix containing the MCMC samples. Each column is one sample.}
 #' \item{\code{acceptance.rate}}{The Metropolis-Hastings acceptance rate.}
-#' \item{\code{gaus, ind}}{The values of the logical gaus and ind.}
+#' \item{\code{gaus}}{The value of the logical gaus.}
+#' \item{\code{ind}}{The value of the logical ind.}
 #' \item{\code{model.case}}{An indicator specifying whether both, neither, or which of the functions \eqn{f} and \eqn{g} are missing.}
 #' \item{\code{var.base}}{The variance used for the base density if not provided by the user.}
 #' \item{\code{mean.ap.tar}}{The mean used for the approximate target density if not provided.}
@@ -86,7 +87,7 @@
 #' result <- geomc(log.target=log_target_mvnorm,initial= c(0, 0),n.iter=500, target.mean=c(1, -2),
 #'                target.Sigma=matrix(c(1.5, 0.7,0.7, 2.0), 2, 2))  
 #'                # addidional arguments passed via ...
-#' #target is multivariate normal
+#' #target is multivariate normal, default choices
 #' result$samples # the MCMC samples.
 #' result$acceptance.rate # the acceptance rate.
 #' #Additional returned values are 
@@ -114,9 +115,6 @@
 #' #target is mixture of univariate normals, random walk base density, another 
 #' #informed choice for dens.ap.tar
 #' hist(result$samples)
-#' result <- geomc(log.target=function(y) -0.5*crossprod(y),initial=rep(0,4),
-#' n.iter=500) #target is multivariate normal, default choices
-#' rowMeans(result$samples)
 #' size=5
 #' result <- geomc(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
 #' initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=list(enabled=TRUE,n.samp=1000,samp.base=TRUE),
@@ -126,7 +124,7 @@
 #'  table(result$samples)
 #' @export
 
-geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=FALSE,n.samp=300,samp.base=FALSE),a=1,mean.base,var.base,dens.base,samp.base,mean.ap.tar,var.ap.tar,dens.ap.tar,samp.ap.tar,...){
+geomc=function(log.target,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=FALSE,n.samp=300,samp.base=TRUE),a=1,mean.base,var.base,dens.base,samp.base,mean.ap.tar,var.ap.tar,dens.ap.tar,samp.ap.tar,...){
   if(missing(log.target)) stop("log.target must be provided")
 
   logtarget.user <- log.target

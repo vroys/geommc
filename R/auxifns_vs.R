@@ -154,10 +154,25 @@ samp_u_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob
 }
 #sample from h(.|curr)#is called only if prod[kk]<1
 samp_h_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,kk=1){
+  max.try = 5000
     success <- FALSE
+    attempts <- 0
     while (!success) {
+      attempts <- attempts + 1
+      if (attempts > max.try) {
+        stop(sprintf(
+          "Rejection sampler failed to generate a valid proposal after %d attempts. 
+         Try adjusting tuning parameters (eps,lam, w, move.prob), 
+         or use a different starting model.",
+          max.try
+        ))
+      }
+      
             prop=samp_u_vs(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,kk)
-            success <- log(runif(1)) < log(dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw)[kk])+log(1-prod[kk]^2)-log(dens_g_vs(prop,logp.add,logp.del,logp.swap,X,yty,Xty,mult.c,add.c,lam,logw)[kk]+ prod[kk]^2*dens_f_vs(prop,curr,ncovar,symm,move.prob))
+            log.accept <-log(dens_h_vs(prop,curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw)[kk])+log(1-prod[kk]^2)-log(dens_g_vs(prop,logp.add,logp.del,logp.swap,X,yty,Xty,mult.c,add.c,lam,logw)[kk]+ prod[kk]^2*dens_f_vs(prop,curr,ncovar,symm,move.prob))
+            if (log(runif(1)) < log.accept) {
+              success <- TRUE
+            }
   }
   return(prop)
 }

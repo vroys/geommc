@@ -6,31 +6,39 @@
 distributions using geometric MH algorithms.}
 \usage{
 geomc(
-  log.target,
+  logp,
   initial,
   n.iter,
   eps = 0.5,
   ind = FALSE,
   gaus = TRUE,
-  imp = list(enabled = FALSE, n.samp = 300, samp.base = FALSE),
+  imp = list(enabled = FALSE, n.samp = 300, samp.base = TRUE),
   a = 1,
-  mean.base,
-  var.base,
-  dens.base,
-  samp.base,
-  mean.ap.tar,
-  var.ap.tar,
-  dens.ap.tar,
-  samp.ap.tar,
+  show.progress = TRUE,
   ...
 )
 }
 \arguments{
-\item{log.target}{A function that evaluates the logarithm of the
+\item{logp}{Either a function that evaluates the logarithm of the un-normalized target density (pdf or pmf) to sample from, or
+a list containing at least one element named \code{log.target}. The list may optionally include any of the following elements
+specifying additional functions for the base and approximate target densities: \code{mean.base}, \code{var.base}, \code{dens.base},
+\code{samp.base}, \code{mean.ap.tar}, \code{var.ap.tar}, \code{dens.ap.tar}, and \code{samp.ap.tar}. See below for details of these functions.
+Any optional elements not provided are treated as missing, and default behavior is applied.
+\itemize{
+\item \code{log.target} A function that evaluates the logarithm of the
 un-normalized target density (pdf or pmf). Its first argument must be
-the current state vector \code{x}, and it must return a numeric scalar.
+the current state vector \eqn{x}, and it must return a numeric scalar.
 If the target density requires additional parameters, the user-supplied
-\code{log.target} must be written to accept them through \code{...}}
+\code{log.target} must be written to accept them through \code{...}
+\item \code{mean.base} is the mean of the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.
+\item \code{var.base} is the covariance matrix of the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.
+\item \code{dens.base} is the density function of the base density \eqn{f}, needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.
+\item \code{samp.base} is the function to draw from the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.
+\item \code{mean.ap.tar} is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of the current state \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.
+\item \code{var.ap.tar} is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.
+\item \code{dens.ap.tar} is the vector of densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.
+\item \code{samp.ap.tar} is the function to draw from the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of (current state \eqn{x}, the indicator of mixing component \eqn{kk}). It must return a vector of the length of that of the initial.
+}}
 
 \item{initial}{is the initial state.}
 
@@ -45,49 +53,33 @@ the current state \eqn{x}. Default is False.}
 
 \item{imp}{A list of three elements controlling optional importance sampling.
 This list has components:
-\describe{
-\item{\code{enabled}}{Logical. If \code{FALSE} (default),
+\itemize{
+\item \code{enabled} Logical. If \code{FALSE} (default),
 numerical integration is used to compute
 \eqn{\langle \sqrt{f}, \sqrt{g} \rangle}. If \code{TRUE},
-importance sampling is used instead.}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{\\item\{\code{n.samp}\}\{A positive integer giving the number of Monte Carlo
-  samples used when \code{enabled = TRUE}.\}
-
-\\item\{\code{samp.base}\}\{Logical. If \code{TRUE}, the samples in the
-  importance sampler are drawn from the base density \eqn{f};
-  otherwise they are drawn from the target density \eqn{g}.
-  Default is \code{FALSE}.\}
-}\if{html}{\out{</div>}}
-
+importance sampling is used instead.
+\item \code{n.samp} A positive integer giving the number of Monte Carlo
+samples used when \code{enabled = TRUE}.
+\item \code{samp.base} Logical. If \code{TRUE}, the samples in the
+importance sampler are drawn from the base density \eqn{f};
+otherwise they are drawn from the target density \eqn{g}.
+Default is \code{FALSE}.
 }
 When \code{gaus = TRUE}, the \code{imp} argument is ignored.}
 
 \item{a}{is the probability vector for the mixture proposal density. Default is the uniform distribution.}
 
-\item{mean.base}{is the mean of the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.}
-
-\item{var.base}{is the covariance matrix of the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.}
-
-\item{dens.base}{is the density function of the base density \eqn{f}, needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.}
-
-\item{samp.base}{is the function to draw from the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.}
-
-\item{mean.ap.tar}{is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of the current state \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.}
-
-\item{var.ap.tar}{is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.}
-
-\item{dens.ap.tar}{is the vector of densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.}
-
-\item{samp.ap.tar}{is the function to draw from the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of (current state \eqn{x}, the indicator of mixing component \eqn{kk}). It must return a vector of the length of that of the initial.}
+\item{show.progress}{Logical. Whether to show progress during sampling. Default: TRUE.}
 
 \item{...}{additional arguments passed to \code{log.target}}
 }
 \value{
 The function returns a list with the following components:
-\item{\code{samples}}{A matrix containing the MCMC samples. Each column is one sample.}
+\item{\code{samples}}{A matrix containing the MCMC samples. Each row is one sample.}
+\item{\code{log.p}}{A vector with the logarithm of the (un-normalized) target density for each MCMC sample.}
 \item{\code{acceptance.rate}}{The Metropolis-Hastings acceptance rate.}
-\item{\code{gaus, ind}}{The values of the logical gaus and ind.}
+\item{\code{gaus}}{The value of the logical gaus.}
+\item{\code{ind}}{The value of the logical ind.}
 \item{\code{model.case}}{An indicator specifying whether both, neither, or which of the functions \eqn{f} and \eqn{g} are missing.}
 \item{\code{var.base}}{The variance used for the base density if not provided by the user.}
 \item{\code{mean.ap.tar}}{The mean used for the approximate target density if not provided.}
@@ -127,45 +119,44 @@ of the method can be found in Roy (2024).
 \examples{
 log_target_mvnorm <- function(x, target.mean, target.Sigma) {d  <- length(x)
 xc <- x - target.mean; Q  <- solve(target.Sigma); -0.5 * drop(t(xc) \%*\% Q \%*\% xc)}
-result <- geomc(log.target=log_target_mvnorm,initial= c(0, 0),n.iter=500, target.mean=c(1, -2),
+result <- geomc(logp=log_target_mvnorm,initial= c(0, 0),n.iter=500, target.mean=c(1, -2),
                target.Sigma=matrix(c(1.5, 0.7,0.7, 2.0), 2, 2))  
                # addidional arguments passed via ...
-#target is multivariate normal
+#target is multivariate normal, default choices
 result$samples # the MCMC samples.
 result$acceptance.rate # the acceptance rate.
+result$log.p # the value of logp at the MCMC samples.
 #Additional returned values are 
 result$var.base; result$mean.ap.tar; result$var.ap.tar; result$model.case; result$gaus; result$ind 
-result<-geomc(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
+result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4))),
 initial=0,n.iter=500) #target is mixture of univariate normals, default choices
 hist(result$samples)
-result<-geomc(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
-initial=0,n.iter=500, mean.base = function(x) x,var.base= function(x) 4,
-dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1),
-mean.ap.tar=function(x) c(0,10),var.ap.tar=function(x) c(1,1.4^2),
+result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
+mean.base = function(x) x,
+var.base= function(x) 4, dens.base=function(y,x) dnorm(y, mean=x,sd=2),
+samp.base=function(x) x+2*rnorm(1),
+mean.ap.tar=function(x) c(0,10),var.ap.tar=function(x) c(1,1.4^2), 
 dens.ap.tar=function(y,x) c(dnorm(y),dnorm(y,mean=10,sd=1.4)),
-samp.ap.tar=function(x,kk=1){if(kk==1){return(rnorm(1))} else{return(10+1.4*rnorm(1))}})
+samp.ap.tar=function(x,kk=1){if(kk==1){return(rnorm(1))} else{return(10+1.4*rnorm(1))}}), 
+initial=0,n.iter=500)
 #target is mixture of univariate normals, random walk base density, an informed 
 #choice for dens.ap.tar
 hist(result$samples)
 samp.ap.tar=function(x,kk=1){s.g=sample.int(2,1,prob=c(.5,.5))
 if(s.g==1){return(rnorm(1))
 }else{return(10+1.4*rnorm(1))}}
-result<-geomc(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
-initial=0,n.iter=500,gaus=FALSE,imp=list(enabled=TRUE,n.samp=100,samp.base=TRUE),
-dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1),
-dens.ap.tar=function(y,x) 0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4),
-samp.ap.tar=samp.ap.tar)
+result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)), 
+dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1), 
+dens.ap.tar=function(y,x) 0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4), samp.ap.tar=samp.ap.tar),
+initial=0,n.iter=500,gaus=FALSE,imp=list(enabled=TRUE,n.samp=100,samp.base=TRUE))
 #target is mixture of univariate normals, random walk base density, another 
 #informed choice for dens.ap.tar
 hist(result$samples)
-result <- geomc(log.target=function(y) -0.5*crossprod(y),initial=rep(0,4),
-n.iter=500) #target is multivariate normal, default choices
-rowMeans(result$samples)
 size=5
-result <- geomc(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
-initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=list(enabled=TRUE,n.samp=1000,samp.base=TRUE),
-dens.base=function(y,x) 1/(size+1), samp.base= function(x) sample(seq(0,size,1),1),
-dens.ap.tar=function(y,x) dbinom(y, size, 0.7),samp.ap.tar=function(x,kk=1) rbinom(1, size, 0.7))
+result <- geomc(logp=list(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
+dens.base=function(y,x) 1/(size+1), samp.base= function(x) sample(seq(0,size,1),1), 
+dens.ap.tar=function(y,x) dbinom(y, size, 0.7),samp.ap.tar=function(x,kk=1) rbinom(1, size, 0.7)),
+initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=list(enabled=TRUE,n.samp=1000,samp.base=TRUE))
  #target is binomial
  table(result$samples)
 }

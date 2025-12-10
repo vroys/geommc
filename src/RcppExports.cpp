@@ -56,6 +56,59 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ldens_mvnorm_cpp
+double ldens_mvnorm_cpp(SEXP y_sexp, SEXP mean_sexp, SEXP Sigma_sexp);
+RcppExport SEXP _geommc_ldens_mvnorm_cpp(SEXP y_sexpSEXP, SEXP mean_sexpSEXP, SEXP Sigma_sexpSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type y_sexp(y_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type mean_sexp(mean_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sigma_sexp(Sigma_sexpSEXP);
+    rcpp_result_gen = Rcpp::wrap(ldens_mvnorm_cpp(y_sexp, mean_sexp, Sigma_sexp));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ldens_mvnormchol_cpp
+double ldens_mvnormchol_cpp(SEXP y_sexp, SEXP mean_sexp, SEXP chol_sig_sexp);
+RcppExport SEXP _geommc_ldens_mvnormchol_cpp(SEXP y_sexpSEXP, SEXP mean_sexpSEXP, SEXP chol_sig_sexpSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type y_sexp(y_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type mean_sexp(mean_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type chol_sig_sexp(chol_sig_sexpSEXP);
+    rcpp_result_gen = Rcpp::wrap(ldens_mvnormchol_cpp(y_sexp, mean_sexp, chol_sig_sexp));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rmvnorm_cpp
+NumericVector rmvnorm_cpp(SEXP mu_sexp, SEXP Sigma_sexp);
+RcppExport SEXP _geommc_rmvnorm_cpp(SEXP mu_sexpSEXP, SEXP Sigma_sexpSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type mu_sexp(mu_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sigma_sexp(Sigma_sexpSEXP);
+    rcpp_result_gen = Rcpp::wrap(rmvnorm_cpp(mu_sexp, Sigma_sexp));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bc_cpp
+NumericMatrix bc_cpp(SEXP mu1_sexp, SEXP mu2_sexp, SEXP sig1_sexp, SEXP sig2_sexp, bool diag_var);
+RcppExport SEXP _geommc_bc_cpp(SEXP mu1_sexpSEXP, SEXP mu2_sexpSEXP, SEXP sig1_sexpSEXP, SEXP sig2_sexpSEXP, SEXP diag_varSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type mu1_sexp(mu1_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type mu2_sexp(mu2_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type sig1_sexp(sig1_sexpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type sig2_sexp(sig2_sexpSEXP);
+    Rcpp::traits::input_parameter< bool >::type diag_var(diag_varSEXP);
+    rcpp_result_gen = Rcpp::wrap(bc_cpp(mu1_sexp, mu2_sexp, sig1_sexp, sig2_sexp, diag_var));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rw_mc_cpp
 List rw_mc_cpp(Function log_target, NumericVector initial, int n_iter, SEXP sig, bool return_sample);
 RcppExport SEXP _geommc_rw_mc_cpp(SEXP log_targetSEXP, SEXP initialSEXP, SEXP n_iterSEXP, SEXP sigSEXP, SEXP return_sampleSEXP) {
@@ -77,6 +130,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_geommc_colSumSq_matrix", (DL_FUNC) &_geommc_colSumSq_matrix, 1},
     {"_geommc_colMSD_dgc", (DL_FUNC) &_geommc_colMSD_dgc, 2},
     {"_geommc_colSUMIDX_dgc", (DL_FUNC) &_geommc_colSUMIDX_dgc, 1},
+    {"_geommc_ldens_mvnorm_cpp", (DL_FUNC) &_geommc_ldens_mvnorm_cpp, 3},
+    {"_geommc_ldens_mvnormchol_cpp", (DL_FUNC) &_geommc_ldens_mvnormchol_cpp, 3},
+    {"_geommc_rmvnorm_cpp", (DL_FUNC) &_geommc_rmvnorm_cpp, 2},
+    {"_geommc_bc_cpp", (DL_FUNC) &_geommc_bc_cpp, 5},
     {"_geommc_rw_mc_cpp", (DL_FUNC) &_geommc_rw_mc_cpp, 5},
     {NULL, NULL, 0}
 };

@@ -20,7 +20,8 @@ geomc.vs(
   lam = nrow(X)/ncol(X)^2,
   w = sqrt(nrow(X))/ncol(X),
   model.summary = FALSE,
-  model.threshold = 0.5
+  model.threshold = 0.5,
+  show.progress = TRUE
 )
 }
 \arguments{
@@ -60,10 +61,12 @@ as suggested by the theoretical results of Li, Dutta, Roy (2023).}
 the median model (median.model) and the weighted average model (wam).
 A covariate will be included in median.model (wam) if its marginal inclusion
 probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.}
+
+\item{show.progress}{Logical. Whether to show progress during sampling. Default: TRUE.}
 }
 \value{
 A list with components
-\item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a \eqn{p \times}n.iter sparse \code{lgCMatrix}.}
+\item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a n.iter\eqn{\times p} sparse \code{lgCMatrix}.}
 \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
 \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 \item{\code{median.model}}{The  median probability model based on post burnin samples.}

@@ -27,6 +27,7 @@
 #' the median model (median.model) and the weighted average model (wam).
 #' A covariate will be included in median.model (wam) if its marginal inclusion
 #' probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.
+#' @param show.progress Logical. Whether to show progress during sampling. Default: TRUE.
 #' @details
 #' geomc.vs provides MCMC samples using the geometric MH algorithm of Roy (2024)
 #' for variable selection based on a hierarchical Gaussian linear model with priors placed
@@ -62,7 +63,7 @@
 #' \deqn{ beta.mean = \sum_{k=1}^{K} N_k E(\beta|\gamma^{(k)},y)/n.iter} and
 #' \deqn{beta.wam = \sum_{k=1}^K w_k E(\beta|\gamma^{(k)},y),} respectively.
 #' @return A list with components
-#' \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a \eqn{p \times}n.iter sparse \code{lgCMatrix}.}
+#' \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a n.iter\eqn{\times p} sparse \code{lgCMatrix}.}
 #' \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
 #' \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 #' \item{\code{median.model}}{The  median probability model based on post burnin samples.}
@@ -101,25 +102,58 @@
 #' result$beta.wam #another estimate of the posterior mean of regression coefficients
 #' result$log.post #the log (unnormalized) posterior probabilities of the MCMC samples.
 #' @export
-geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.prob=c(.4,.4,.2), lam0=0, a0=0, b0=0, lam = nrow(X)/ncol(X)^2, w = sqrt(nrow(X))/ncol(X), model.summary=FALSE, model.threshold = 0.5){
-   if(n.iter < 1) stop("n.iter must be larger than or equal to 1")
-   if(burnin < 1) stop("burnin must be larger than or equal to 1")
-   if(burnin > n.iter) stop("burnin must be  smaller than or equal to n.iter")
-   if(eps<=0 || eps>=1) stop("eps must be a proper fraction")
-   if(lam0<0) stop("lam0 must be a non-negative number")
-   if(a0<0) stop("a0 must be a non-negative number")
-   if(b0<0) stop("b0 must be a non-negative number")
-   if(lam<=0) stop("lam must be a positive number")
-   if(w<=0 || w>=1) stop("w must be a proper fraction")
-   if(model.threshold<=0 || model.threshold>=1) stop("model.threshold must be a proper fraction")
-   if(!symm) if(any(move.prob <0) || length(move.prob)!=3) stop("move.prob must be a probability vector of length three")
-   move.prob=move.prob/sum(move.prob)
+geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.prob=c(.4,.4,.2), lam0=0, a0=0, b0=0, lam = nrow(X)/ncol(X)^2, w = sqrt(nrow(X))/ncol(X), model.summary=FALSE, model.threshold = 0.5,show.progress=TRUE){
+  check_positive_integer(n.iter, "n.iter")
+  check_positive_integer(burnin, "burnin")
+  if(burnin > n.iter) stop("burnin must be  smaller than or equal to n.iter")
+  check_fraction_01(eps, "eps")
+  
+  if (!is.numeric(lam0) || length(lam0) != 1 || is.na(lam0) || lam0 < 0)
+    stop("lam0 must be a single non-negative number")
+  
+  if (!is.numeric(a0) || length(a0) != 1 || is.na(a0) || a0 < 0)
+    stop("a0 must be a single non-negative number")
+  
+  if (!is.numeric(b0) || length(b0) != 1 || is.na(b0) || b0 < 0)
+    stop("b0 must be a single non-negative number")
+  
+  if (!is.numeric(lam) || length(lam) != 1 || is.na(lam) || lam <= 0)
+    stop("lam must be a single positive number")
+  
+  if (!is.numeric(w) || length(w) != 1 || is.na(w) || w <= 0 || w >= 1)
+    stop("w must be a single proper fraction in (0,1)")
+  
+  if (!is.numeric(model.threshold) || length(model.threshold) != 1 ||
+      is.na(model.threshold) || model.threshold <= 0 || model.threshold >= 1)
+    stop("model.threshold must be a single proper fraction in (0,1)")
+  if (!symm) {
+    if (!is.numeric(move.prob) || length(move.prob) != 3 ||
+        any(is.na(move.prob)) || any(move.prob < 0) ||
+        sum(move.prob) == 0)
+      stop("move.prob must be a numeric probability vector of length 3 with non-negative entries")
+    
+    move.prob <- move.prob / sum(move.prob)
+  }
    ctr_accep =0
    ncovar <- ncol(X)
-   nn<-length(y)
-   if(nn!=nrow(X)) stop("The number of rows of X must match with the length of y")
-   if(any(any(initial>ncovar),any(initial<1))) stop("The initial model must be a subset of column numbers of X")
+   nn <- length(y)
+   
+   if (nn != nrow(X))
+     stop("The number of rows of X must match the length of y")
+   
+   if (any(is.na(X)) || any(is.na(y)))
+     stop("X and y must not contain missing values")
 
+   if (is.null(initial)) {
+     initial <- integer(0)
+   } else {
+     if (!is.numeric(initial) || any(initial %% 1 != 0))
+       stop("initial must be NULL or a vector of integer column indices")
+     if (any(initial < 1) || any(initial > ncovar))
+       stop("initial must be a subset of column numbers of X")
+     initial <- as.integer(initial)
+   }
+   
   xbar = colMeans(X)
   if(lam0==0){
     mult.c=0.5*(nn-1)+a0
@@ -143,12 +177,26 @@ geomc.vs=function(X,y,initial=NULL,n.iter=50,burnin=1,eps=0.5,symm=TRUE, move.pr
   Xty = D*as.numeric(crossprod(X,ys))
   yty=sum(ys^2)
   logw = log(w/(1-w))
-curr = sort.int(initial) # Initial value
+curr = sort.int(initial) 
 eps = eps
 log.post<-numeric(n.iter)
 size <- integer(n.iter)
 indices <- integer(n.iter*20)
 ctr.ind=0
+
+if (isTRUE(show.progress)) {
+  if (!requireNamespace("progress", quietly = TRUE)) {
+    warning("Install the `progress` package to show progress bars.")
+    show.progress <- FALSE
+  } else {
+    pb <- progress::progress_bar$new(
+      total = n.iter,
+      format = "  [:bar] :percent (:current/:total)",
+      clear = FALSE,
+      width = 60
+    )
+  }
+}
 
 logp.add.cur=addvar_vs(curr,n=nn,p=ncovar, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
 logp.del.cur=delvar_vs(curr, p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
@@ -182,26 +230,27 @@ logp_curr=logp.vs.in(curr,X,yty,Xty,mult.c,add.c,lam,logw)
           size[i] <- length(curr)
           indices[(ctr.ind+1):(ctr.ind+size[i])] <- curr
           ctr.ind <- ctr.ind+size[i]
-             }
+           }
+          if (isTRUE(show.progress)) pb$tick()
         }
 indices <- indices[indices>0]
 cumsize <- cumsum(size)
-samps <- sparseMatrix(i=indices,p = c(0,cumsize),index1 = T,dims = c(ncovar,n.iter), x = T)
+samps <- sparseMatrix(j=indices,p = c(0,cumsize),index1 = T,dims = c(n.iter,ncovar), x = T)
 if(!model.summary){
   return(list(samples=samps,acceptance.rate=ctr_accep/n.iter))
 }
-samps.postburn<-samps[,burnin:n.iter,drop=FALSE]
+samps.postburn<-samps[burnin:n.iter,,drop=FALSE]
 log.postburn<-log.post[burnin:n.iter]
 logpost.uniq.ind <-  !duplicated(log.postburn)
 log.postburn.uniq<-log.postburn[logpost.uniq.ind]
 weight.unnorm <- exp(log.postburn.uniq - max(log.postburn.uniq))
 weight <- weight.unnorm/sum(weight.unnorm)
 n.rep<-sapply(log.postburn.uniq, FUN=function(x){sum(x==log.postburn)})
-samps.uniq<-samps.postburn[,logpost.uniq.ind,drop=FALSE]
-modelsize.uniq<-colSums(samps.uniq)
+samps.uniq<-samps.postburn[logpost.uniq.ind,,drop=FALSE]
+modelsize.uniq<-rowSums(samps.uniq)
 no.model.uniq<-sum(logpost.uniq.ind)
-MIP<-rowMeans(samps.postburn)
-WMIP<-as.vector(samps.postburn[,logpost.uniq.ind,drop=FALSE]%*%weight)
+MIP<-colMeans(samps.postburn)
+WMIP <- as.vector(weight %*% samps.uniq)
 med.model<-which(MIP>=model.threshold)
 model.WAM<-which(WMIP>=model.threshold)
 beta.est <- matrix(0, (ncovar+1),no.model.uniq)
@@ -210,8 +259,8 @@ for(i in 1:no.model.uniq){
   if(modelsize.uniq[i]==0){
     beta.est[1, i] <- (nn/(nn+lam0))*mean(y)
   }else{
-    model_i<- samps.uniq[,i]
-    x.est <- cbind(rep(1, nn), scale(X[, model_i], center = xbar[model_i], scale = 1/D[model_i]))
+    model_i <- samps.uniq[i, ] == 1
+    x.est <- cbind(rep(1, nn), scale(X[, model_i, drop = FALSE], center = xbar[model_i], scale = 1/D[model_i]))
     beta <- solve(crossprod(x.est) + diag(c(lam0, lam*rep(1, modelsize.uniq[i]))), crossprod(x.est, y))
     beta.est[c(T, model_i), i] <- c(beta[1]-sum(beta[-1]*xbar[model_i]*D[model_i]),beta[-1] * D[model_i])
   }

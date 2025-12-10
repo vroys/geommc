@@ -50,7 +50,7 @@ List rw_mc_cpp(Function log_target,
   
   NumericMatrix sample_store;
   if (return_sample) {
-    sample_store = NumericMatrix(d, n_iter);
+    sample_store = NumericMatrix(n_iter,d);
   }
   
   for (int i = 0; i < n_iter; i++) {
@@ -77,7 +77,7 @@ List rw_mc_cpp(Function log_target,
     
     if (return_sample) {
       for (int j = 0; j < d; j++)
-        sample_store(j, i) = curr[j];
+        sample_store(i,j) = curr[j];
     }
     
     double w = 1.0 / (i+1);

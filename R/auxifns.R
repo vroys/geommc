@@ -1,5 +1,11 @@
 #' @keywords internal
 #' @noRd
+isatty <- function(con) {
+  inherits(summary(con)$class, "terminal")
+}
+get_opt <- function(lst, name) {
+if (name %in% names(lst)) lst[[name]] else NULL
+}
 check_positive_integer <- function(x, name) {
   if (!is.numeric(x) ||
       length(x) != 1 ||
@@ -66,11 +72,11 @@ is_pd <- function(mat, tol = sqrt(.Machine$double.eps)) {
 ####calculate msjd for MC output## mat is npara times niter matrix
 msejd<-function(mat){
   if (!is.matrix(mat)) {
-    mat <- matrix(mat, nrow = 1)
+    mat <- matrix(mat, ncol = 1)
   }
-  niter <- ncol(mat)
+  niter <- nrow(mat)
   if (niter < 2) return(0) 
-  diffs <- mat[, 2:niter, drop = FALSE] - mat[, 1:(niter - 1), drop = FALSE]
+  diffs <- mat[2:niter, ,drop = FALSE] - mat[1:(niter - 1), ,drop = FALSE]
   return(sum(diffs * diffs) / (niter - 1))
 }
 bc = function(mu1, mu2, sig1, sig2,diag.var){
@@ -182,8 +188,20 @@ samp_u = function(curr,prod,kk=1,samp.base,samp.ap.tar){
 }
 #sample from h(.|curr)#is called only if prod[kk]<1
 samp_h = function(curr,prod,kk=1,dens.base,dens.ap.tar,samp.base,samp.ap.tar){
+  max.try = 5000
   success <- FALSE
+  attempts <- 0
+  
   while (!success) {
+    attempts <- attempts + 1
+    if (attempts > max.try) {
+      stop(sprintf(
+        "rejection sampler for h failed to generate a proposal after %d attempts. 
+        Try adjusting eps, and other input functions, 
+         or use a different starting vector.",
+        max.try
+      ))
+    }
     x<-samp_u(curr,prod,kk,samp.base,samp.ap.tar)
     rhs<- log(dens_h(x,curr,prod,dens.base,dens.ap.tar)[kk])+log1p(-prod[kk]^2)-log(dens.ap.tar(x,curr)[kk]+ prod[kk]^2*dens.base(x,curr))
     rhs[!is.finite(rhs)] <- -Inf
@@ -233,7 +251,7 @@ samp_phi = function(a,curr,prod,theta,eps,dens.base,dens.ap.tar,samp.base,samp.a
 }
 genfvar <- function(log.target, initial, dd) {
   out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig= 2.38^2 /dd)
-  if (out$acceptance_rate >= 0.25 && out$acceptance_rate <= 0.7) {
+  if (out$acceptance_rate >= 0.35 && out$acceptance_rate <= 0.7) {
     sig.rw <- 2.38^2 /dd
   } else if (out$acceptance_rate > 0.7) {
     for (i in 1:10) {
@@ -245,7 +263,7 @@ genfvar <- function(log.target, initial, dd) {
     for (i in 1:10) {
       sig.rw <- 2.38^2/dd/(2^i)
       out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate >= 0.25) break
+      if (out$acceptance_rate >= 0.35) break
     }
   }
   
@@ -258,7 +276,7 @@ genfvar <- function(log.target, initial, dd) {
 }
 genfvargmeanvar <- function(log.target, initial, dd) {
   out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig= 2.38^2 /dd)
-  if (out$acceptance_rate >= 0.25 && out$acceptance_rate <= 0.7) {
+  if (out$acceptance_rate >= 0.35 && out$acceptance_rate <= 0.7) {
     sig.rw <- 2.38^2 /dd
   } else if (out$acceptance_rate > 0.7) {
     for (i in 1:10) {
@@ -270,7 +288,7 @@ genfvargmeanvar <- function(log.target, initial, dd) {
     for (i in 1:10) {
       sig.rw <- 2.38^2/dd/(2^i)
       out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate >= 0.25) break
+      if (out$acceptance_rate >= 0.35) break
     }
   }
   

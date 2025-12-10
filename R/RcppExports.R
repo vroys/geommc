@@ -17,6 +17,22 @@ colSUMIDX_dgc <- function(mat) {
     .Call(`_geommc_colSUMIDX_dgc`, mat)
 }
 
+ldens_mvnorm_cpp <- function(y_sexp, mean_sexp, Sigma_sexp) {
+    .Call(`_geommc_ldens_mvnorm_cpp`, y_sexp, mean_sexp, Sigma_sexp)
+}
+
+ldens_mvnormchol_cpp <- function(y_sexp, mean_sexp, chol_sig_sexp) {
+    .Call(`_geommc_ldens_mvnormchol_cpp`, y_sexp, mean_sexp, chol_sig_sexp)
+}
+
+rmvnorm_cpp <- function(mu_sexp, Sigma_sexp) {
+    .Call(`_geommc_rmvnorm_cpp`, mu_sexp, Sigma_sexp)
+}
+
+bc_cpp <- function(mu1_sexp, mu2_sexp, sig1_sexp, sig2_sexp, diag_var) {
+    .Call(`_geommc_bc_cpp`, mu1_sexp, mu2_sexp, sig1_sexp, sig2_sexp, diag_var)
+}
+
 rw_mc_cpp <- function(log_target, initial, n_iter, sig, return_sample = FALSE) {
     .Call(`_geommc_rw_mc_cpp`, log_target, initial, n_iter, sig, return_sample)
 }

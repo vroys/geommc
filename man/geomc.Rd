@@ -120,14 +120,14 @@ of the method can be found in Roy (2024).
 log_target_mvnorm <- function(x, target.mean, target.Sigma) {d  <- length(x)
 xc <- x - target.mean; Q  <- solve(target.Sigma); -0.5 * drop(t(xc) \%*\% Q \%*\% xc)}
 result <- geomc(logp=log_target_mvnorm,initial= c(0, 0),n.iter=500, target.mean=c(1, -2),
-               target.Sigma=matrix(c(1.5, 0.7,0.7, 2.0), 2, 2))  
-               # addidional arguments passed via ...
+               target.Sigma=matrix(c(1.5, 0.7,0.7, 2.0), 2, 2))
+               # additional arguments passed via ...
 #target is multivariate normal, default choices
 result$samples # the MCMC samples.
 result$acceptance.rate # the acceptance rate.
 result$log.p # the value of logp at the MCMC samples.
-#Additional returned values are 
-result$var.base; result$mean.ap.tar; result$var.ap.tar; result$model.case; result$gaus; result$ind 
+#Additional returned values are
+result$var.base; result$mean.ap.tar; result$var.ap.tar; result$model.case; result$gaus; result$ind
 result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4))),
 initial=0,n.iter=500) #target is mixture of univariate normals, default choices
 hist(result$samples)
@@ -135,26 +135,26 @@ result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean
 mean.base = function(x) x,
 var.base= function(x) 4, dens.base=function(y,x) dnorm(y, mean=x,sd=2),
 samp.base=function(x) x+2*rnorm(1),
-mean.ap.tar=function(x) c(0,10),var.ap.tar=function(x) c(1,1.4^2), 
+mean.ap.tar=function(x) c(0,10),var.ap.tar=function(x) c(1,1.4^2),
 dens.ap.tar=function(y,x) c(dnorm(y),dnorm(y,mean=10,sd=1.4)),
-samp.ap.tar=function(x,kk=1){if(kk==1){return(rnorm(1))} else{return(10+1.4*rnorm(1))}}), 
+samp.ap.tar=function(x,kk=1){if(kk==1){return(rnorm(1))} else{return(10+1.4*rnorm(1))}}),
 initial=0,n.iter=500)
-#target is mixture of univariate normals, random walk base density, an informed 
+#target is mixture of univariate normals, random walk base density, an informed
 #choice for dens.ap.tar
 hist(result$samples)
 samp.ap.tar=function(x,kk=1){s.g=sample.int(2,1,prob=c(.5,.5))
 if(s.g==1){return(rnorm(1))
 }else{return(10+1.4*rnorm(1))}}
-result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)), 
-dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1), 
+result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
+dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1),
 dens.ap.tar=function(y,x) 0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4), samp.ap.tar=samp.ap.tar),
 initial=0,n.iter=500,gaus=FALSE,imp=list(enabled=TRUE,n.samp=100,samp.base=TRUE))
-#target is mixture of univariate normals, random walk base density, another 
+#target is mixture of univariate normals, random walk base density, another
 #informed choice for dens.ap.tar
 hist(result$samples)
 size=5
 result <- geomc(logp=list(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
-dens.base=function(y,x) 1/(size+1), samp.base= function(x) sample(seq(0,size,1),1), 
+dens.base=function(y,x) 1/(size+1), samp.base= function(x) sample(seq(0,size,1),1),
 dens.ap.tar=function(y,x) dbinom(y, size, 0.7),samp.ap.tar=function(x,kk=1) rbinom(1, size, 0.7)),
 initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=list(enabled=TRUE,n.samp=1000,samp.base=TRUE))
  #target is binomial

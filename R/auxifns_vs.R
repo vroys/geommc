@@ -154,18 +154,16 @@ samp_u_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob
 }
 #sample from h(.|curr)#is called only if prod[kk]<1
 samp_h_vs = function(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,kk=1){
-  max.try = 5000
+  max.try = max(100000, 1000*(1+prod^2)/(1-prod^2))
     success <- FALSE
     attempts <- 0
     while (!success) {
       attempts <- attempts + 1
       if (attempts > max.try) {
-        stop(sprintf(
-          "Rejection sampler failed to generate a valid proposal after %d attempts. 
-         Try adjusting tuning parameters (eps,lam, w, move.prob), 
-         or use a different starting model.",
-          max.try
-        ))
+        stop(print(
+          "Rejection sampler for h is taking too long to generate a valid proposal. 
+         Try reducing eps or adjusting other tuning parameters (lam, w, move.prob), 
+         or use a different starting model."))
       }
       
             prop=samp_u_vs(curr,prod,ncovar,logp.add,logp.del,logp.swap,symm,move.prob,kk)

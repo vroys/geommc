@@ -188,18 +188,17 @@ samp_u = function(curr,prod,kk=1,samp.base,samp.ap.tar){
 }
 #sample from h(.|curr)#is called only if prod[kk]<1
 samp_h = function(curr,prod,kk=1,dens.base,dens.ap.tar,samp.base,samp.ap.tar){
-  max.try = 5000
+  max.try = max(100000, 1000*(1+prod^2)/(1-prod^2))
   success <- FALSE
   attempts <- 0
   
   while (!success) {
     attempts <- attempts + 1
     if (attempts > max.try) {
-      stop(sprintf(
-        "rejection sampler for h failed to generate a proposal after %d attempts. 
-        Try adjusting eps, and other input functions, 
-         or use a different starting vector.",
-        max.try
+      stop(print(
+        "Rejection sampler for h is taking too long to generate a proposal. 
+        Try reducing eps, and adjusting other input functions, 
+         or use a different starting vector."
       ))
     }
     x<-samp_u(curr,prod,kk,samp.base,samp.ap.tar)
@@ -251,7 +250,7 @@ samp_phi = function(a,curr,prod,theta,eps,dens.base,dens.ap.tar,samp.base,samp.a
 }
 genfvar <- function(log.target, initial, dd) {
   out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig= 2.38^2 /dd)
-  if (out$acceptance_rate >= 0.35 && out$acceptance_rate <= 0.7) {
+  if (out$acceptance_rate >= 0.45 && out$acceptance_rate <= 0.7) {
     sig.rw <- 2.38^2 /dd
   } else if (out$acceptance_rate > 0.7) {
     for (i in 1:10) {
@@ -263,7 +262,7 @@ genfvar <- function(log.target, initial, dd) {
     for (i in 1:10) {
       sig.rw <- 2.38^2/dd/(2^i)
       out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate >= 0.35) break
+      if (out$acceptance_rate >= 0.45) break
     }
   }
   
@@ -276,7 +275,7 @@ genfvar <- function(log.target, initial, dd) {
 }
 genfvargmeanvar <- function(log.target, initial, dd) {
   out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig= 2.38^2 /dd)
-  if (out$acceptance_rate >= 0.35 && out$acceptance_rate <= 0.7) {
+  if (out$acceptance_rate >= 0.45 && out$acceptance_rate <= 0.7) {
     sig.rw <- 2.38^2 /dd
   } else if (out$acceptance_rate > 0.7) {
     for (i in 1:10) {
@@ -288,7 +287,7 @@ genfvargmeanvar <- function(log.target, initial, dd) {
     for (i in 1:10) {
       sig.rw <- 2.38^2/dd/(2^i)
       out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate >= 0.35) break
+      if (out$acceptance_rate >= 0.45) break
     }
   }
   

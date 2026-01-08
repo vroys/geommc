@@ -1,7 +1,7 @@
 Package: geommc
 Title: Geometric Markov Chain Sampling
 Type: Package
-Version: 1.1.1
+Version: 1.2.1
 Authors@R: 
     person("Vivekananda", "Roy", , "vroy@iastate.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-2964-9503"))
@@ -22,6 +22,6 @@ Imports:
     Matrix,
     numDeriv,
     progress
-LinkingTo: Rcpp
+LinkingTo: Rcpp, RcppArmadillo
 URL: https://github.com/vroys/geommc
 License: GPL (>= 3)

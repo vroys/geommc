@@ -1,8 +1,5 @@
 #' @keywords internal
 #' @noRd
-isatty <- function(con) {
-  inherits(summary(con)$class, "terminal")
-}
 get_opt <- function(lst, name) {
 if (name %in% names(lst)) lst[[name]] else NULL
 }
@@ -26,17 +23,6 @@ check_fraction_01 <- function(x, name) {
     stop(sprintf("%s must be a finite numeric scalar in [0, 1]", name))
   }
 }
-###log of multivariate normal density
-ldens_mvnorm=function(y,mean,Sigma){
-  y    <- as.numeric(y)
-  mean <- as.numeric(mean)
-  d    <- length(y)
-  R <- tryCatch(chol(Sigma), error = function(e) NULL)
-  if (is.null(R)) return(-Inf)
-  z <- backsolve(R,y-mean,transpose=TRUE)
-  logdet <- sum(log(diag(R)))
-  return(-logdet-0.5*sum(z^2)-0.5*d*log(2 *pi))
-}
 ###log of multivariate normal density for constant variance sig
 ldens_mvnorm_diag=function(y,mean,sig){
   y    <- as.numeric(y)
@@ -46,28 +32,8 @@ ldens_mvnorm_diag=function(y,mean,sig){
   sqdist <- sum((y - mean)^2)
   return(-0.5*sqdist/sig-0.5*d*log(2*pi*sig))
 }
-###log of multivariate normal density when cholesky factor of sig is given
-ldens_mvnormchol=function(y,mean,chol.sig){
-  y    <- as.numeric(y)
-  mean <- as.numeric(mean)
-  d    <- length(y)
-  if (!is.matrix(chol.sig) || nrow(chol.sig) != ncol(chol.sig)) return(-Inf)
-  z <- backsolve(chol.sig,y-mean,transpose=TRUE)
-  logdet <-sum(log(diag(chol.sig)))
-  return(-logdet-0.5*sum(z^2)-0.5*d*log(2 *pi))
-}
-rmvnorm_chol <- function(mu, Sigma) {
-  d <- length(mu)
-  z <- rnorm(d)
-  if (d == 1) {
-    return(mu + sqrt(Sigma) * z)
-  }
-  return(mu + crossprod(chol(Sigma), z))
-}
-is_pd <- function(mat, tol = sqrt(.Machine$double.eps)) {
-  if (!is.matrix(mat)) return(FALSE)
-  ev <- eigen(mat, symmetric = TRUE, only.values = TRUE)$values
-  all(ev > tol)
+is_pd <- function(mat) {
+  tryCatch({chol(mat); TRUE}, error = function(e) FALSE)
 }
 ####calculate msjd for MC output## mat is npara times niter matrix
 msejd<-function(mat){
@@ -78,26 +44,6 @@ msejd<-function(mat){
   if (niter < 2) return(0) 
   diffs <- mat[2:niter, ,drop = FALSE] - mat[1:(niter - 1), ,drop = FALSE]
   return(sum(diffs * diffs) / (niter - 1))
-}
-bc = function(mu1, mu2, sig1, sig2,diag.var){
-  ddd=length(mu1)
-  if(ddd>1){
-    if(!diag.var){
-      sig = 0.5*(sig1+sig2)
-      R1 = chol(sig1)
-      R2 = chol(sig2)
-      R = chol(sig)
-      z = backsolve(R,mu1-mu2,transpose=T)
-      prod=exp(-sum(z^2)/8-(sum(log(diag(R)))-0.5*(sum(log(diag(R1)))+sum(log(diag(R2))))))
-      }else{
-        sig = 0.5*(sig1[1,1]+sig2[1,1])
-        prod=exp(-sum((mu1-mu2)^2)/8/sig-0.5*ddd*(log(sig)-0.5*log(sig1[1,1]*sig2[1,1])))
-        
-      }
-    }else{
-    prod=exp(-(mu1-mu2)^2/(4*(sig1+sig2))-0.5*(log(sig1+sig2)-(log(2*sqrt(sig1*sig2)))))
-  }
-  return(unname(cbind(prod,acos(pmin(pmax(prod,.Machine$double.eps),1-1e-16)))))
 }
 #cmpute prod_curr= <f(y|curr), g(y|curr)> and \theta_curr
 thet=function(curr,k,imp,dens.base,dens.ap.tar,samp.base,samp.ap.tar){
@@ -176,19 +122,22 @@ compute_prod_theta <- function(x, k, gaus, imp,
 #h(x|curr) with prod_curr #this returns a vector of length k
 dens_h=function(x,curr,prod,dens.base,dens.ap.tar){
   kk=length(prod)
-  val=numeric(kk)
   ind.j=which(prod<1)
-  val[ind.j]=(sqrt(dens.ap.tar(x,curr)[ind.j]) - prod[ind.j]*sqrt(dens.base(x,curr)))^2/(1-prod[ind.j]^2)
+  if (length(ind.j) == 0) return(numeric(kk))
+  val=numeric(kk)
+  sqrt_tar <- sqrt(dens.ap.tar(x,curr))
+  sqrt_base <- sqrt(dens.base(x, curr))
+  val[ind.j] <- (sqrt_tar[ind.j] - prod[ind.j] * sqrt_base)^2 / (1 - prod[ind.j]^2)
   return(val)
 }
 #sample from u(.|curr)
 samp_u = function(curr,prod,kk=1,samp.base,samp.ap.tar){
-  if(runif(1)<=1/(1+prod[kk]^2)) return(samp.ap.tar(curr,kk))
+  if(runif(1L)<=1/(1+prod[kk]^2)) return(samp.ap.tar(curr,kk))
   else return(samp.base(curr))
 }
 #sample from h(.|curr)#is called only if prod[kk]<1
 samp_h = function(curr,prod,kk=1,dens.base,dens.ap.tar,samp.base,samp.ap.tar){
-  max.try = max(100000, 1000*(1+prod^2)/(1-prod^2))
+  max.try = max(200000, 2000*(1+prod^2)/(1-prod^2))
   success <- FALSE
   attempts <- 0
   
@@ -231,7 +180,7 @@ log_phi = function(a,x,curr,prod,theta,eps,dens.base,dens.ap.tar){
 #sample from phi(|curr)
 samp_phi = function(a,curr,prod,theta,eps,dens.base,dens.ap.tar,samp.base,samp.ap.tar){
   kk=length(a)
-  s.a <- if (kk > 1) sample.int(kk, 1, prob = a) else 1
+  s.a <- if (kk > 1) sample.int(kk, 1L, prob = a) else 1
   if(prod[s.a]==1){
     return(samp.base(curr))
   }
@@ -240,7 +189,7 @@ samp_phi = function(a,curr,prod,theta,eps,dens.base,dens.ap.tar,samp.base,samp.a
   } else {
     weight <- (cos(eps * theta[s.a]))^2
   }
-  if (runif(1) <= weight) {
+  if (runif(1L) <= weight) {
     return(samp.base(curr))
   } else {
     return(samp_h(curr, prod, s.a,
@@ -249,112 +198,232 @@ samp_phi = function(a,curr,prod,theta,eps,dens.base,dens.ap.tar,samp.base,samp.a
   }
 }
 genfvar <- function(log.target, initial, dd) {
-  out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig= 2.38^2 /dd)
-  if (out$acceptance_rate >= 0.45 && out$acceptance_rate <= 0.7) {
-    sig.rw <- 2.38^2 /dd
-  } else if (out$acceptance_rate > 0.7) {
-    for (i in 1:10) {
-      sig.rw <- 2^i * 2.38^2/dd
-      out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate <= 0.7) break
+  n_pilot <- pmin(500, pmax(150, ceiling(5000 / dd)))
+  
+  sig.rw <- 2.38^2 / dd
+  
+  out <- rwm(log.target, initial, n_iter = n_pilot, sig = sig.rw)
+  acc_rate <- out$acceptance_rate
+  
+  if (acc_rate >= 0.45 && acc_rate <= 0.7) {
+    return(list(sd.base = sqrt(sig.rw), var.base = sig.rw))
+  }
+  
+  base_sig <- 2.38^2 / dd
+  
+  if (acc_rate > 0.7) {
+    mult_low <- 1
+    mult_high <- 1024  # 2^10
+    
+    for (iter in 1:10) {
+      mult <- exp((log(mult_low) + log(mult_high)) / 2)
+      sig.rw <- mult * base_sig
+      
+      out <- rwm(log.target, initial, n_iter = n_pilot, sig = sig.rw)
+      acc_rate <- out$acceptance_rate
+      
+      if (acc_rate >= 0.45 && acc_rate <= 0.7) break
+      
+      if (acc_rate > 0.7) {
+        mult_low <- mult
+      } else {
+        mult_high <- mult
+      }
     }
+    
   } else {
-    for (i in 1:10) {
-      sig.rw <- 2.38^2/dd/(2^i)
-      out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate >= 0.45) break
+    mult_low <- 1 / 1024  # 2^(-10)
+    mult_high <- 1
+    
+    for (iter in 1:10) {
+      mult <- exp((log(mult_low) + log(mult_high)) / 2)
+      sig.rw <- mult * base_sig
+      
+      out <- rwm(log.target, initial, n_iter = n_pilot, sig = sig.rw)
+      acc_rate <- out$acceptance_rate
+      
+      if (acc_rate >= 0.45 && acc_rate <= 0.7) break
+      
+      if (acc_rate < 0.45) {
+        mult_high <- mult
+      } else {
+        mult_low <- mult
+      }
     }
   }
   
-  var.base <- sig.rw
-  sd.base  <- sqrt(sig.rw)
   return(list(
-    sd.base = sd.base,
-    var.base = var.base
+    sd.base = sqrt(sig.rw), 
+    var.base = sig.rw
   ))
 }
 genfvargmeanvar <- function(log.target, initial, dd) {
-  out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig= 2.38^2 /dd)
-  if (out$acceptance_rate >= 0.45 && out$acceptance_rate <= 0.7) {
-    sig.rw <- 2.38^2 /dd
-  } else if (out$acceptance_rate > 0.7) {
-    for (i in 1:10) {
-      sig.rw <- 2^i * 2.38^2/dd
-      out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate <= 0.7) break
-    }
-  } else {
-    for (i in 1:10) {
-      sig.rw <- 2.38^2/dd/(2^i)
-      out <- rw_mc_cpp(log.target, initial, n_iter = 500, sig=sig.rw)
-      if (out$acceptance_rate >= 0.45) break
+  n_pilot <- pmin(500, pmax(100, ceiling(5000 / dd)))
+  
+  sig.rw <- 2.38^2 / dd
+  
+  out <- rwm(log.target, initial, n_iter = n_pilot, sig = sig.rw)
+  acc_rate <- out$acceptance_rate
+  
+  if (acc_rate < 0.45 || acc_rate > 0.7) {
+    base_sig <- 2.38^2 / dd
+    
+    if (acc_rate > 0.7) {
+      mult_low <- 1
+      mult_high <- 1024
+      
+      for (iter in 1:10) {
+        mult <- exp((log(mult_low) + log(mult_high)) / 2)
+        sig.rw <- mult * base_sig
+        
+        out <- rwm(log.target, initial, n_iter = n_pilot, sig = sig.rw)
+        acc_rate <- out$acceptance_rate
+        
+        if (acc_rate >= 0.45 && acc_rate <= 0.7) break
+        
+        if (acc_rate > 0.7) {
+          mult_low <- mult
+        } else {
+          mult_high <- mult
+        }
+      }
+    } else {
+      mult_low <- 1 / 1024
+      mult_high <- 1
+      
+      for (iter in 1:10) {
+        mult <- exp((log(mult_low) + log(mult_high)) / 2)
+        sig.rw <- mult * base_sig
+        
+        out <- rwm(log.target, initial, n_iter = n_pilot, sig = sig.rw)
+        acc_rate <- out$acceptance_rate
+        
+        if (acc_rate >= 0.45 && acc_rate <= 0.7) break
+        
+        if (acc_rate < 0.45) {
+          mult_high <- mult
+        } else {
+          mult_low <- mult
+        }
+      }
     }
   }
   
   var.base <- sig.rw
-  sd.base  <- sqrt(sig.rw)
+  sd.base <- sqrt(sig.rw)
   
-  diag.v.ap<- FALSE
   
-  opt <- try(
-    optim(initial, fn = log.target, method = "L-BFGS-B",
-          control = list(fnscale = -1), hessian = TRUE),
-    silent = TRUE
-  )
+  diag.v.ap <- FALSE
   
-  optim_success <- !(inherits(opt, "try-error") || opt$convergence != 0)
+  start_point <- if (!is.null(out$last_state)) out$last_state else initial
+  
+  skip_optim <- dd > 100  
+  
+  if (!skip_optim) {
+    opt <- try(
+      optim(start_point, fn = log.target, method = "L-BFGS-B",
+            control = list(fnscale = -1, maxit = 100 * dd), 
+            hessian = TRUE),
+      silent = TRUE
+    )
+    
+    optim_success <- !(inherits(opt, "try-error") || opt$convergence != 0)
+  } else {
+    optim_success <- FALSE
+  }
   
   if (optim_success) {
     mean.ap.tar <- opt$par
     H <- opt$hessian
     hess_ok <- !any(is.na(H)) && all(is.finite(H))
     
-    if (!hess_ok) {
+    if (!hess_ok && dd <= 50) {
       H <- try(numDeriv::hessian(log.target, mean.ap.tar), silent = TRUE)
+      hess_ok <- !(inherits(H, "try-error") || any(is.na(H)) || any(!is.finite(H)))
+    } else if (!hess_ok) {
+      hess_ok <- FALSE  
     }
-
-    hess_ok <- !(inherits(H, "try-error") || any(is.na(H)) || any(!is.finite(H)))
     
     if (hess_ok) {
       var.ap.tar <- tryCatch({
         V <- -solve(H)
         V <- 0.5 * (V + t(V))
-        diag(V) <- pmax(diag(V), 100)
-        Vpd <- as.matrix(Matrix::nearPD(V)$mat)
+        diag(V) <- pmax(diag(V), 1e-4)
+        
+        if (dd > 20) {
+          max_off_diag <- max(abs(V[row(V) != col(V)]))
+          min_diag <- min(abs(diag(V)))
+          if (max_off_diag < 0.1 * min_diag) {
+            diag.v.ap <<- TRUE
+            Vpd <- diag(diag(V))
+          } else {
+            is.pd <- tryCatch({chol(V); TRUE}, error = function(e) FALSE)
+            
+            if (is.pd) {
+              Vpd <- V
+            } else if (dd <= 50) {
+              Vpd <- as.matrix(Matrix::nearPD(V, corr = FALSE)$mat)
+            } else {
+              diag.v.ap <<- TRUE
+              Vpd <- diag(pmax(diag(V), 0.01 * mean(abs(diag(V)))))
+            }
+          }
+        } else {
+          is.pd <- tryCatch({chol(V); TRUE}, error = function(e) FALSE)
+          
+          if (is.pd) {
+            Vpd <- V
+          } else {
+            Vpd <- as.matrix(Matrix::nearPD(V, corr = FALSE)$mat)
+          }
+        }
         Vpd
       }, error = function(e) {
         diag.v.ap <<- TRUE
-        900 * diag(dd)
+        diag(rep(400, dd))
       })
-    } else {
-      var.ap.tar <- 900 * diag(dd)
-      diag.v.ap=TRUE
+    }else {
+      diag.v.ap <<- TRUE
+      var.ap.tar <- diag(rep(400, dd))
     }
-    return(list(
-      sd.base = sd.base,
-      var.base = var.base,
-      mean.ap.tar = mean.ap.tar,
-      var.ap.tar = var.ap.tar, 
-      diag.v.ap=diag.v.ap
-    ))
+      
+      if (!diag.v.ap && all(var.ap.tar == diag(diag(var.ap.tar)))) {
+        diag.v.ap <- TRUE
+      }
+    
+      return(list(
+        sd.base = sd.base,
+        var.base = var.base,
+        mean.ap.tar = mean.ap.tar,
+        var.ap.tar = var.ap.tar,
+        diag.v.ap = diag.v.ap
+      ))
+    }
+  
+  total_needed <- pmax(1000, pmin(5000, ceiling(50000 / dd)))
+  remaining_iter <- total_needed - n_pilot
+  
+  if (remaining_iter > 0) {
+    out1 <- rwm(log.target, out$last_state, 
+                      n_iter = remaining_iter, sig = sig.rw)
+    
+    mean.ap.tar <- (out$mean * n_pilot + out1$mean * remaining_iter) / total_needed
+  } else {
+    mean.ap.tar <- out$mean
   }
   
-  out1 <- rw_mc_cpp(log.target, out$last_state, n_iter = 4500, sig=sig.rw)
-  
-  
-  mean.ap.tar <- (out$mean * out$n_iter + out1$mean * out1$n_iter) / (out$n_iter + out1$n_iter)
-  
-  var.ap.tar <- 900 * diag(dd)
-  diag.v.ap=TRUE
+  var.ap.tar <- diag(rep(400, dd))
+  diag.v.ap <- TRUE
   
   return(list(
     sd.base = sd.base,
     var.base = var.base,
     mean.ap.tar = mean.ap.tar,
     var.ap.tar = var.ap.tar,
-    diag.v.ap=diag.v.ap
+    diag.v.ap = diag.v.ap
   ))
 }
+
 
 checkFuncArgs <- function(func, args) {
   if(!inherits(func, 'function')) {

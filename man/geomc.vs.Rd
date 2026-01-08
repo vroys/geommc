@@ -68,6 +68,8 @@ probability (weighted marginal inclusion probability) is greater than the thresh
 A list with components
 \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a n.iter\eqn{\times p} sparse \code{lgCMatrix}.}
 \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
+\item{\code{log.post}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
+at the samples.}
 \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 \item{\code{median.model}}{The  median probability model based on post burnin samples.}
 \item{\code{beta.mean}}{The Monte Carlo estimate of posterior  mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
@@ -76,8 +78,6 @@ coefficients)) based on post burnin samples.}
 \item{\code{wam}}{The weighted average model based on post burnin samples.}
 \item{\code{beta.wam}}{The model probability weighted estimate of posterior mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
 coefficients)) based on post burnin samples.}
-\item{\code{log.post}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
-at the samples.}
 }
 \description{
 geomc.vs uses a geometric approach to MCMC for performing Bayesian variable selection.

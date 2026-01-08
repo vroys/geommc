@@ -12,7 +12,7 @@ geomc(
   eps = 0.5,
   ind = FALSE,
   gaus = TRUE,
-  imp = list(enabled = FALSE, n.samp = 300, samp.base = TRUE),
+  imp = list(enabled = FALSE, n.samp = 100, samp.base = TRUE),
   a = 1,
   show.progress = TRUE,
   ...
@@ -37,7 +37,7 @@ If the target density requires additional parameters, the user-supplied
 \item \code{mean.ap.tar} is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of the current state \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.
 \item \code{var.ap.tar} is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.
 \item \code{dens.ap.tar} is the vector of densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.
-\item \code{samp.ap.tar} is the function to draw from the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of (current state \eqn{x}, the indicator of mixing component \eqn{kk}). It must return a vector of the length of that of the initial.
+\item \code{samp.ap.tar} is the function to draw from the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of (current state \eqn{x}, the indicator of component \eqn{kk}). It must return a vector of the length of that of the initial.
 }}
 
 \item{initial}{is the initial state.}
@@ -80,57 +80,80 @@ The function returns a list with the following components:
 \item{\code{acceptance.rate}}{The Metropolis-Hastings acceptance rate.}
 \item{\code{gaus}}{The value of the logical gaus.}
 \item{\code{ind}}{The value of the logical ind.}
-\item{\code{model.case}}{An indicator specifying whether both, neither, or which of the functions \eqn{f} and \eqn{g} are missing.}
-\item{\code{var.base}}{The variance used for the base density if not provided by the user.}
-\item{\code{mean.ap.tar}}{The mean used for the approximate target density if not provided.}
-\item{\code{var.ap.tar}}{The variance used for the approximate target density if not provided.}
+\item{\code{model.case}}{Describes whether default settings are used for both functions
+\eqn{f} and \eqn{g}, for only one of them, or for neither.}
+\item{\code{var.base}}{The default variance used for the random-walk base density if not provided by the user.}
+\item{\code{mean.ap.tar}}{The default mean vector used for the approximate target density if not provided
+by the user.}
+\item{\code{var.ap.tar}}{The default covariance matrix used for the approximate target density if not provided
+by the user.}
 }
 \description{
-geomc produces Markov chain samples from a target distribution.
-The target distribution may be either a probability density function (pdf) or a probability mass function (pmf).
-Users specify the target by providing an R function that evaluates the log un-normalized pdf or pmf.
+geomc produces Markov chain samples from a user-defined target, which
+may be either a probability density function (pdf) or a probability mass function (pmf).
+The target is provided as an R function returning the log of its unnormalized pdf or pmf.
+}
+\details{
 The function geomc implements the geometric approach of Roy (2024) to move an initial (possibly uninformed)
 base density toward one or more approximate target densities, thereby constructing efficient proposal distributions
-for MCMC.
+for MCMC. The details of the method can be found in Roy (2024).
+
 The base density can be user-specified through its mean, covariance matrix, density function, and sampling function.
-When the base density is Gaussian, it may be specified using only its mean and covariance; however, providing the
-density and sampling functions is recommended when available.
+When the base density is Gaussian, it may be specified using only its mean and covariance; however, the
+density and sampling functions can also be provided.
 If either or both of the mean and variance arguments and any of the density and sampling functions is
 omitted, geomc automatically constructs a base density corresponding to a random-walk proposal with an appropriate scale.
 One or more approximate target densities
 can be supplied. Just like the base density, each approximate target may be specified through its mean, covariance,
 density, and sampling functions.
-Gaussian approximate targets may be specified using only their means and covariance matrices, although it is preferred to
-supply their densities and sampling functions as well. If either or both of the mean and variance
+Gaussian approximate targets may be specified using only their means and covariance matrices, although their densities
+and sampling functions can be supplied as well. If either or both of the mean and variance
 arguments and any of the density and sampling functions is missing for the approximate target density, then geomc
 automatically constructs a diffuse multivariate normal distribution as the approximate target.
+
 If the argument gaus is set to FALSE, then both the base and approximate target can be specified through their
 density functions and sampling functions. In this case, any user-supplied mean or covariance functions for these distributions are ignored.
 Conversely, if for either the base or the approximate target, the user specifies both a density function and a sampling
 function but omits either the mean function or the covariance function, then gaus = FALSE is automatically enforced.
+
 If the target distribution is a pmf (i.e., a discrete distribution),
-then gaus=FALSE and imp$enabled=TRUE (not the default values) need to be specified. This ensures that the algorithm uses
-importance sampling rather than numerical integration when computing \eqn{\langle \sqrt{f}, \sqrt{g} \rangle} for discrete targets.
-}
-\details{
-Using a geometric Metropolis-Hastings algorithm geom.mc produces Markov chains with the target as its stationary distribution. The details
-of the method can be found in Roy (2024).
+then the user must set gaus=FALSE and imp$enabled=TRUE (these are not the default values). This ensures that the algorithm uses
+importance sampling rather than numerical integration or closed-form Gaussian expressions
+when computing \eqn{\langle \sqrt{f}, \sqrt{g} \rangle} for discrete targets.
 }
 \examples{
+#target is multivariate normal, sampling using geomc with default choices
 log_target_mvnorm <- function(x, target.mean, target.Sigma) {d  <- length(x)
 xc <- x - target.mean; Q  <- solve(target.Sigma); -0.5 * drop(t(xc) \%*\% Q \%*\% xc)}
 result <- geomc(logp=log_target_mvnorm,initial= c(0, 0),n.iter=500, target.mean=c(1, -2),
                target.Sigma=matrix(c(1.5, 0.7,0.7, 2.0), 2, 2))
                # additional arguments passed via ...
-#target is multivariate normal, default choices
 result$samples # the MCMC samples.
 result$acceptance.rate # the acceptance rate.
 result$log.p # the value of logp at the MCMC samples.
 #Additional returned values are
 result$var.base; result$mean.ap.tar; result$var.ap.tar; result$model.case; result$gaus; result$ind
-result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4))),
-initial=0,n.iter=500) #target is mixture of univariate normals, default choices
+#target is the posterior of (\eqn{\mu}, \eqn{\sigma^2}) with iid data from 
+#N(\eqn{\mu}, \eqn{\sigma^2}) and N(mu0, \eqn{tau0^2}) prior on \eqn{\mu} 
+#and an inverse–gamma (alpha0, beta0) prior on \eqn{\sigma^2}
+log_target <- function(par, x, mu0, tau0, alpha0, beta0) {
+mu  <- par[1];sigma2 <- par[2]
+if (sigma2 <= 0) return(-Inf)
+n  <- length(x); SSE <- sum((x - mu)^2)
+val <- -(n/2) * log(sigma2) - SSE / (2 * sigma2) - (mu - mu0)^2 / (2 * tau0^2)
+-(alpha0 + 1) * log(sigma2) -beta0 / sigma2
+return(val)}
+# sampling using geomc with default choices
+result=geomc(logp=log_target,initial=c(0,1),n.iter=1000,x=1+rnorm(100),mu0=0,          
+tau0=1,alpha0=2.01,beta0=1.01)
+colMeans(result$samples)
+#target is mixture of univariate normals, sampling using geomc with default choices
+set.seed(3);result<-geomc(logp=list(log.target=function(y) 
+log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4))),
+initial=0,n.iter=1000) 
 hist(result$samples)
+#target is mixture of univariate normals, sampling using geomc with a random walk base density,
+# and an informed choice for dens.ap.tar
 result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4)),
 mean.base = function(x) x,
 var.base= function(x) 4, dens.base=function(y,x) dnorm(y, mean=x,sd=2),
@@ -139,9 +162,9 @@ mean.ap.tar=function(x) c(0,10),var.ap.tar=function(x) c(1,1.4^2),
 dens.ap.tar=function(y,x) c(dnorm(y),dnorm(y,mean=10,sd=1.4)),
 samp.ap.tar=function(x,kk=1){if(kk==1){return(rnorm(1))} else{return(10+1.4*rnorm(1))}}),
 initial=0,n.iter=500)
-#target is mixture of univariate normals, random walk base density, an informed
-#choice for dens.ap.tar
 hist(result$samples)
+#target is mixture of univariate normals, sampling using geomc with a random walk base density, 
+# and another informed choice for dens.ap.tar
 samp.ap.tar=function(x,kk=1){s.g=sample.int(2,1,prob=c(.5,.5))
 if(s.g==1){return(rnorm(1))
 }else{return(10+1.4*rnorm(1))}}
@@ -149,15 +172,28 @@ result<-geomc(logp=list(log.target=function(y) log(0.5*dnorm(y)+0.5*dnorm(y,mean
 dens.base=function(y,x) dnorm(y, mean=x,sd=2),samp.base=function(x) x+2*rnorm(1),
 dens.ap.tar=function(y,x) 0.5*dnorm(y)+0.5*dnorm(y,mean=10,sd=1.4), samp.ap.tar=samp.ap.tar),
 initial=0,n.iter=500,gaus=FALSE,imp=list(enabled=TRUE,n.samp=100,samp.base=TRUE))
-#target is mixture of univariate normals, random walk base density, another
-#informed choice for dens.ap.tar
 hist(result$samples)
+#target is mixture of bivariate normals, sampling using geomc with random walk base density,
+# and an informed choice for dens.ap.tar
+log_target_mvnorm_mix <- function(x, mean1, Sigma1, mean2, Sigma2) {
+return(log(0.5*exp(geommc:::ldens_mvnorm(x, mean1,Sigma1))+
+0.5*exp(geommc:::ldens_mvnorm(x,mean2,Sigma2))))}
+result <- geomc(logp=list(log.target=log_target_mvnorm_mix, mean.base = function(x) x, 
+var.base= function(x) 2*diag(2), mean.ap.tar=function(x) c(0,0,10,10),
+var.ap.tar=function(x) cbind(diag(2),2*diag(2))),initial= c(5, 5),n.iter=500, mean1=c(0, 0), 
+Sigma1=diag(2), mean2=c(10, 10), Sigma2=2*diag(2))
+colMeans(result$samples)
+#While the geomc with random walk base successfully moves back and forth between the two modes,
+# the random walk Metropolis is trapped in a mode, as run below 
+result<-geommc:::rwm(log_target= function(x) log_target_mvnorm_mix(x,c(0, 0), diag(2), 
+c(10, 10), 2*diag(2)), initial= c(5, 5), n_iter = 500, sig = 2,return_sample = TRUE)
+colMeans(result$samples)
+ #target is binomial, sampling using geomc
 size=5
 result <- geomc(logp=list(log.target = function(y) dbinom(y, size, 0.3, log = TRUE),
 dens.base=function(y,x) 1/(size+1), samp.base= function(x) sample(seq(0,size,1),1),
 dens.ap.tar=function(y,x) dbinom(y, size, 0.7),samp.ap.tar=function(x,kk=1) rbinom(1, size, 0.7)),
 initial=0,n.iter=500,ind=TRUE,gaus=FALSE,imp=list(enabled=TRUE,n.samp=1000,samp.base=TRUE))
- #target is binomial
  table(result$samples)
 }
 \references{

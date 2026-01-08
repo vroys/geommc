@@ -65,6 +65,8 @@
 #' @return A list with components
 #' \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a n.iter\eqn{\times p} sparse \code{lgCMatrix}.}
 #' \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
+#' \item{\code{log.post}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
+#'   at the samples.}
 #' \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 #' \item{\code{median.model}}{The  median probability model based on post burnin samples.}
 #' \item{\code{beta.mean}}{The Monte Carlo estimate of posterior  mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
@@ -73,8 +75,6 @@
 #' \item{\code{wam}}{The weighted average model based on post burnin samples.}
 #' \item{\code{beta.wam}}{The model probability weighted estimate of posterior mean of \eqn{\beta} (the \eqn{p+1} vector c(intercept, regression
 #'   coefficients)) based on post burnin samples.}
-#' \item{\code{log.post}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
-#'   at the samples.}
 #' @author Vivekananda Roy
 #' @references Roy, V.(2024) A geometric approach to informative MCMC
 #'   sampling https://arxiv.org/abs/2406.09010
@@ -201,27 +201,37 @@ if (isTRUE(show.progress)) {
 logp.add.cur=addvar_vs(curr,n=nn,p=ncovar, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
 logp.del.cur=delvar_vs(curr, p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
 logp.swap.cur=swapvar_vs(curr, n=nn,p=ncovar, x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
-calc=thet_vs(curr,logp.add.cur,logp.del.cur,logp.swap.cur,ncovar,symm,move.prob)
+logp.best.cur <- max(logp.add.cur, logp.del.cur, logp.swap.cur)
+log.cc.cur <- log(sum(exp(logp.add.cur - logp.best.cur)) +
+                sum(exp(logp.del.cur - logp.best.cur)) +
+                sum(exp(logp.swap.cur - logp.best.cur)))
+calc=thet_vs(curr,logp.add.cur,logp.del.cur,logp.swap.cur,logp.best.cur,log.cc.cur,ncovar,symm,move.prob)
 prod_c=calc[,1]
 theta_c=calc[,2]
-logp_curr=logp.vs.in(curr,X,yty,Xty,mult.c,add.c,lam,logw)
+logp_curr=logp_vs_in(curr,X,yty,Xty,mult.c,add.c,lam,logw)
         for (i in 1:n.iter) {
-          proposed = samp_phi_vs(curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)
+          proposed = samp_phi_vs(curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,logp.best.cur,log.cc.cur,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)
           logp.add.p=addvar_vs(proposed, n=nn,p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
           logp.del.p=delvar_vs(proposed, p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
           logp.swap.p=swapvar_vs(proposed, n=nn,p=ncovar,x=X, yty=yty, xty=Xty, mult.c, add.c, lam=lam, logw, D=D, xbar=xbar)$logp
-          calc=thet_vs(proposed,logp.add.p,logp.del.p,logp.swap.p,ncovar,symm,move.prob)
+          logp.best.p <- max(logp.add.p, logp.del.p, logp.swap.p)
+          log.cc.p <- log(sum(exp(logp.add.p - logp.best.p)) +
+                              sum(exp(logp.del.p - logp.best.p)) +
+                              sum(exp(logp.swap.p - logp.best.p)))
+          calc=thet_vs(proposed,logp.add.p,logp.del.p,logp.swap.p,logp.best.p,log.cc.p,ncovar,symm,move.prob)
           prod_p=calc[,1]
           theta_p=calc[,2]
-          logp_prop=logp.vs.in(proposed,X,yty,Xty,mult.c,add.c,lam,logw)
-          logr = logp_prop+log_phi_vs(curr,proposed,prod_p,theta_p,ncovar,logp.add.p,logp.del.p,logp.swap.p,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)-logp_curr-log_phi_vs(proposed,curr,prod_c,theta_c,ncovar,logp.add.cur,logp.del.cur,logp.swap.cur,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)
-            if (logr >=0 || log(runif(1)) < logr){
+          logp_prop=logp_vs_in(proposed,X,yty,Xty,mult.c,add.c,lam,logw)
+          logr = logp_prop+log_phi_vs(curr,proposed,prod_p,theta_p,ncovar,logp.best.p,log.cc.p,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)-logp_curr-log_phi_vs(proposed,curr,prod_c,theta_c,ncovar,logp.best.cur,log.cc.cur,symm,move.prob,X,yty,Xty,mult.c,add.c,lam,logw,eps)
+            if (logr >=0 || log(runif(1L)) < logr){
                 curr = proposed
                 prod_c=prod_p
                 theta_c=theta_p
                 logp.add.cur=logp.add.p
                 logp.del.cur=logp.del.p
                 logp.swap.cur=logp.swap.p
+                logp.best.cur=logp.best.p
+                log.cc.cur=log.cc.p
                 logp_curr=logp_prop
                 ctr_accep = ctr_accep+1
             }
@@ -237,7 +247,7 @@ indices <- indices[indices>0]
 cumsize <- cumsum(size)
 samps <- sparseMatrix(j=indices,p = c(0,cumsize),index1 = T,dims = c(n.iter,ncovar), x = T)
 if(!model.summary){
-  return(list(samples=samps,acceptance.rate=ctr_accep/n.iter))
+  return(list(samples=samps,acceptance.rate=ctr_accep/n.iter,log.post=log.post))
 }
 samps.postburn<-samps[burnin:n.iter,,drop=FALSE]
 log.postburn<-log.post[burnin:n.iter]
@@ -267,5 +277,5 @@ for(i in 1:no.model.uniq){
 }
 beta.m<-rowSums(beta.est%*%diag(n.rep))/(n.iter-burnin+1)
 beta.wam <- rowSums(beta.est%*%diag(weight))
-return(list(samples=samps,acceptance.rate=ctr_accep/n.iter,mip=MIP,median.model=med.model,beta.mean=beta.m,wmip=WMIP,wam=model.WAM,beta.wam=beta.wam,log.post=log.post))
+return(list(samples=samps,acceptance.rate=ctr_accep/n.iter,log.post=log.post,mip=MIP,median.model=med.model,beta.mean=beta.m,wmip=WMIP,wam=model.WAM,beta.wam=beta.wam))
 }

@@ -2,7 +2,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-List rw_mc_cpp(Function log_target,
+List rwm(Function log_target,
                NumericVector initial,
                int n_iter,
                SEXP sig,

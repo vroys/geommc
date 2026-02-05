@@ -120,14 +120,14 @@ arguments and any of the density and sampling functions is missing for the appro
 then \code{geomc} automatically constructs a diffuse multivariate normal distribution as the approximate target.
 
 If the target distribution is a pmf (i.e., a discrete distribution) then the user must provide the base pmf \eqn{f}
-and one or more \eqn{g_i}'s. The package vignette \code{vignette("geommc")} provides several useful choices for \eqn{f}
+and one or more \eqn{g_i}'s. The package vignette \code{vignette(package="geommc")} provides several useful choices for \eqn{f}
 and \eqn{g_i}. In addition, the user must set \code{gaus=FALSE} and either supply \code{bhat.coef} or set \code{imp$enabled=TRUE}
 (neither of which is the default for \code{gaus} or \code{imp}). This ensures that the algorithm uses either the user defined
 \code{bhat.coef} function or the importance sampling, rather than numerical integration or closed-form Gaussian expressions,
 for computing the Bhattacharyya coefficient \eqn{\langle \sqrt{f}, \sqrt{g_i} \rangle} for discrete distributions.
 
 For a discussion and several illustrative examples of the \code{geomc} function, see the package vignette
-\code{vignette("geommc")}.
+\code{vignette(package="geommc")}.
 }
 \examples{
 #target is multivariate normal, sampling using geomc with default choices

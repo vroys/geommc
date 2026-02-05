@@ -117,7 +117,7 @@ of \eqn{\beta} computed as
 \deqn{beta.wam = \sum_{k=1}^K w_k E(\beta|\gamma^{(k)},y),} respectively.
 
 For a discussion and some illustrative examples of the \code{geomc.vs} function, see the package vignette
-\code{vignette("geommc")}.
+\code{vignette(package="geommc")}.
 }
 \examples{
 n=50; p=100; nonzero = 3

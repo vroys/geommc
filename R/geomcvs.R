@@ -63,7 +63,7 @@
 #' \deqn{beta.wam = \sum_{k=1}^K w_k E(\beta|\gamma^{(k)},y),} respectively.
 #' 
 #' For a discussion and some illustrative examples of the \code{geomc.vs} function, see the package vignette
-#' \code{vignette("geommc")}.
+#' \code{vignette(package="geommc")}.
 #' @return A list with components
 #' \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a n.iter\eqn{\times p} sparse \code{lgCMatrix}.}
 #' \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}

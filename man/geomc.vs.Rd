@@ -42,24 +42,23 @@ regression coefficients are returned on the original scale.}
 \item{symm}{indicates if the base density is of symmetric RW-MH. Default: True.}
 
 \item{move.prob}{is the vector of ('addition', 'deletion', 'swap') move probabilities. Default: (0.4,0.4,0.2).
-move.prob is used only when symm is set to False.}
+move.prob is used only when \code{symm} is set to False.}
 
-\item{lam0}{The precision parameter for \eqn{\beta_0}. Default: 0 (corresponding to improper uniform prior).}
+\item{lam0}{The precision parameter for \eqn{\beta_0}. Default: 0 (corresponding to the improper uniform prior).}
 
 \item{a0}{The shape parameter for prior on \eqn{\sigma^2}. Default: 0.}
 
 \item{b0}{The scale parameter for prior on \eqn{\sigma^2}. Default: 0.}
 
-\item{lam}{The slab precision parameter. Default: \eqn{n/p^2}
-as suggested by the theoretical results of Li, Dutta, Roy (2023).}
+\item{lam}{The slab precision parameter. Default: \eqn{n/p^2}.}
 
 \item{w}{The prior inclusion probability of each variable. Default: \eqn{\sqrt{n}/p}.}
 
 \item{model.summary}{If true, additional summaries are returned. Default: FALSE.}
 
 \item{model.threshold}{The threshold probability to select the covariates for
-the median model (median.model) and the weighted average model (wam).
-A covariate will be included in median.model (wam) if its marginal inclusion
+the median model (\code{median.model}) and the weighted average model (\code{wam}).
+A covariate will be included in median.model (\code{wam}) if its marginal inclusion
 probability (weighted marginal inclusion probability) is greater than the threshold. Default: 0.5.}
 
 \item{show.progress}{Logical. Whether to show progress during sampling. Default: TRUE.}
@@ -68,7 +67,7 @@ probability (weighted marginal inclusion probability) is greater than the thresh
 A list with components
 \item{samples}{MCMC samples from  \eqn{P(\gamma|y)} returned as a n.iter\eqn{\times p} sparse \code{lgCMatrix}.}
 \item{\code{acceptance.rate}}{The acceptance rate based on all samples.}
-\item{\code{log.post}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
+\item{\code{log.p}}{The n.iter vector of log of the unnormalized marginal posterior pmf \eqn{P(\gamma|y)} evaluated
 at the samples.}
 \item{\code{mip}}{The \eqn{p} vector of marginal inclusion probabilities of all variables based on post burnin samples.}
 \item{\code{median.model}}{The  median probability model based on post burnin samples.}
@@ -84,7 +83,7 @@ geomc.vs uses a geometric approach to MCMC for performing Bayesian variable sele
 It produces MCMC samples from the posterior density of a Bayesian hierarchical feature selection model.
 }
 \details{
-geomc.vs provides MCMC samples using the geometric MH algorithm of Roy (2024)
+\code{geomc.vs} provides MCMC samples using the geometric MH algorithm of Roy (2024)
 for variable selection based on a hierarchical Gaussian linear model with priors placed
 on the regression coefficients as well as on the model space as follows:
 \deqn{y | X, \beta_0,\beta,\gamma,\sigma^2,w,\lambda \sim N(\beta_01 + X_\gamma\beta_\gamma,\sigma^2I_n)}
@@ -98,24 +97,27 @@ those columns of \eqn{X} for which \eqn{\gamma_i=1} and similarly, \eqn{\beta_\g
 \eqn{\sigma^2 \sim Inv-Gamma (a_0, b_0)} has the form \eqn{\pi(\sigma^2) \propto (\sigma^2)^{-a_0-1} \exp(-b_0/\sigma^2)}.
 The functions in the package also allow the non-informative prior \eqn{(\beta_{0}, \sigma^2)|\gamma, w \sim 1 / \sigma^{2}}
 which is obtained by setting \eqn{\lambda_0=a_0=b_0=0}.
-geomc.vs provides the empirical MH acceptance rate and MCMC samples from the posterior pmf of the models \eqn{P(\gamma|y)}, which is available
-up to a normalizing constant.
-If \eqn{\code{model.summary}} is set TRUE, geomc.vs also returns other model summaries. In particular, it returns the
-marginal inclusion probabilities (mip) computed by the Monte Carlo average as well as the weighted marginal
-inclusion probabilities (wmip) computed with weights \deqn{w_i =
+\code{geomc.vs} provides the empirical MH acceptance rate and MCMC samples from the posterior pmf of the models \eqn{P(\gamma|y)}, which is available
+up to a normalizing constant. \code{geomc.vs} also provides the log-posterior values (up to an additive constant) at the observed MCMC samples.
+If \eqn{\code{model.summary}} is set TRUE, \code{geomc.vs} also returns other model summaries. In particular, it returns the
+marginal inclusion probabilities (\code{mip}) computed by the Monte Carlo average as well as the weighted marginal
+inclusion probabilities (\code{wmip}) computed with weights \deqn{w_i =
 P(\gamma^{(i)}|y)/\sum_{k=1}^K P(\gamma^{(k)}|y), i=1,2,...,K} where \eqn{\gamma^{(k)}, k=1,2,...,K} are the distinct
 models sampled. Thus, if \eqn{N_k} is the no. of times the \eqn{k}th distinct model \eqn{\gamma^{(k)}} is repeated in the MCMC samples,
-the mip for the \eqn{j}th variable is \deqn{mip_j =
+the \code{mip} for the \eqn{j}th variable is \deqn{mip_j =
 \sum_{k=1}^{K} N_k I(\gamma^{(k)}_j = 1)/n.iter} and
-wmip for the \eqn{j}th variable is \deqn{wmip_j =
+\code{wmip} for the \eqn{j}th variable is \deqn{wmip_j =
 \sum_{k=1}^K w_k I(\gamma^{(k)}_j = 1).}
-The median.model is the model containing variables \eqn{j} with \eqn{mip_j >
+The \code{median.model} is the model containing variables \eqn{j} with \eqn{mip_j >
 \code{model.threshold}} and the wam is the model containing variables \eqn{j} with \eqn{wmip_j >
 \code{model.threshold}}. Note that \eqn{E(\beta|\gamma, y)}, the conditional posterior mean of \eqn{\beta} given a model \eqn{\gamma} is
-available in closed form (see Li, Dutta, Roy (2023) for details). geomc.vs returns two estimates (beta.mean, beta.wam) of the posterior mean
+available in closed form (see Li, Dutta, Roy (2023) for details). \code{geomc.vs} returns two estimates (beta.mean, beta.wam) of the posterior mean
 of \eqn{\beta} computed as
 \deqn{ beta.mean = \sum_{k=1}^{K} N_k E(\beta|\gamma^{(k)},y)/n.iter} and
 \deqn{beta.wam = \sum_{k=1}^K w_k E(\beta|\gamma^{(k)},y),} respectively.
+
+For a discussion and some illustrative examples of the \code{geomc.vs} function, see the package vignette
+\code{vignette("geommc")}.
 }
 \examples{
 n=50; p=100; nonzero = 3
@@ -136,7 +138,7 @@ result$median.model #the median.model
 result$wam #the weighted average model
 result$beta.mean #the posterior mean of regression coefficients
 result$beta.wam #another estimate of the posterior mean of regression coefficients
-result$log.post #the log (unnormalized) posterior probabilities of the MCMC samples.
+result$log.p #the log (unnormalized) posterior probabilities of the MCMC samples.
 }
 \references{
 Roy, V.(2024) A geometric approach to informative MCMC

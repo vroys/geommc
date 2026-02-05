@@ -91,9 +91,15 @@ thet=function(curr,k,imp,dens.base,dens.ap.tar,samp.base,samp.ap.tar){
 compute_prod_theta <- function(x, k, gaus, imp,
                                mean.base, var.base, dens.base, samp.base,
                                mean.ap.tar, var.ap.tar, dens.ap.tar, samp.ap.tar,
-                               diag.v.ap, dd) {
+                               bhat.coef, diag.v.ap, dd) {
   if (!gaus) {
+    if(!is.null(bhat.coef)){
+      prod <- bhat.coef(x)
+      angle <- acos(pmin(pmax(prod, .Machine$double.eps), 1 - 1e-16))
+      return(unname(cbind(prod, angle)))
+    }else{
     return(thet(x,k,imp,dens.base,dens.ap.tar,samp.base,samp.ap.tar))
+    }
   }
   mb  <- mean.base(x)
   map <- mean.ap.tar(x)
@@ -422,19 +428,4 @@ genfvargmeanvar <- function(log.target, initial, dd) {
     var.ap.tar = var.ap.tar,
     diag.v.ap = diag.v.ap
   ))
-}
-
-
-checkFuncArgs <- function(func, args) {
-  if(!inherits(func, 'function')) {
-    return(FALSE)
-  }
-  func.args <- formals(func)
-  if(length(func.args) != length(args)) {
-    return(FALSE)
-  }
-  #  if(!all(names(func.args) == args)) {
-  #   return(FALSE)
-  # }
-  return(TRUE)
 }

@@ -18,8 +18,12 @@ bc <- function(mu1_sexp, mu2_sexp, sig1_sexp, sig2_sexp, diag_var) {
     .Call(`_geommc_bc`, mu1_sexp, mu2_sexp, sig1_sexp, sig2_sexp, diag_var)
 }
 
-logp_vs_in <- function(model, X, yty, Xty, mult_c, add_c, lam, logw) {
-    .Call(`_geommc_logp_vs_in`, model, X, yty, Xty, mult_c, add_c, lam, logw)
+logp_vs_in_dense <- function(model, X, yty, Xty, mult_c, add_c, lam, logw) {
+    .Call(`_geommc_logp_vs_in_dense`, model, X, yty, Xty, mult_c, add_c, lam, logw)
+}
+
+logp_vs_in_sparse <- function(model, X, yty, Xty, mult_c, add_c, lam, logw) {
+    .Call(`_geommc_logp_vs_in_sparse`, model, X, yty, Xty, mult_c, add_c, lam, logw)
 }
 
 colSumSq_dge <- function(x, dim) {

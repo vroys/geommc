@@ -7,36 +7,41 @@
 #' may be either a probability density function (pdf) or a probability mass function (pmf).
 #' The target is provided as an R function returning the log of its unnormalized pdf or pmf.
 #' @details
-#' The function geomc implements the geometric approach of Roy (2024) to move an initial (possibly uninformed)
-#'  base density toward one or more approximate target densities, thereby constructing efficient proposal distributions
-#'   for MCMC. The details of the method can be found in Roy (2024).
+#' The function \code{geomc} implements the geometric approach of Roy (2024) to move an initial (possibly uninformed)
+#'  base density \eqn{f} toward one or more approximate target densities \eqn{g_i, i=1,\dots,k}, thereby constructing 
+#'  efficient proposal distributions for MCMC. The details of the method can be found in Roy (2024).
 #'   
-#'   The base density can be user-specified through its mean, covariance matrix, density function, and sampling function.
-#'  When the base density is Gaussian, it may be specified using only its mean and covariance; however, the
-#'  density and sampling functions can also be provided.
-#'     If either or both of the mean and variance arguments and any of the density and sampling functions is
-#' omitted, geomc automatically constructs a base density corresponding to a random-walk proposal with an appropriate scale.
-#'  One or more approximate target densities
-#' can be supplied. Just like the base density, each approximate target may be specified through its mean, covariance,
-#' density, and sampling functions.
-#' Gaussian approximate targets may be specified using only their means and covariance matrices, although their densities 
-#' and sampling functions can be supplied as well. If either or both of the mean and variance
-#' arguments and any of the density and sampling functions is missing for the approximate target density, then geomc
-#' automatically constructs a diffuse multivariate normal distribution as the approximate target.
+#'   The base density \eqn{f} can be user-specified through its mean, covariance matrix, density function, and sampling 
+#'   function. One or more approximate target densities \eqn{g_i, i=1,\dots,k} can also be supplied. Just like the base 
+#'   density, each approximate target may be specified through its mean, covariance, density, and sampling functions.
 #' 
-#' If the argument gaus is set to FALSE, then both the base and approximate target can be specified through their
-#' density functions and sampling functions. In this case, any user-supplied mean or covariance functions for these distributions are ignored.
-#'  Conversely, if for either the base or the approximate target, the user specifies both a density function and a sampling
-#'  function but omits either the mean function or the covariance function, then gaus = FALSE is automatically enforced.
+#'  A Gaussian (\eqn{f} or \eqn{g_i}) density must be specified in terms of its mean
+#'  and covariance; optional density and sampling functions may also be supplied.
+#' 
+#'  Non-Gaussian densities, including discrete pmfs for either the base or approximate target, are specified solely 
+#'  via their density and sampling functions. If for either the base or the approximate target, the user specifies 
+#'  both a density function and a sampling function but omits either the mean function or the covariance function, 
+#'  then \code{gaus = FALSE} is automatically enforced.
 #'  
-#' If the target distribution is a pmf (i.e., a discrete distribution),
-#' then the user must set gaus=FALSE and imp$enabled=TRUE (these are not the default values). This ensures that the algorithm uses
-#' importance sampling rather than numerical integration or closed-form Gaussian expressions
-#' when computing \eqn{\langle \sqrt{f}, \sqrt{g} \rangle} for discrete targets.
+#' If either or both of the mean and variance arguments and any of the density and sampling functions is
+#' omitted for the base density, \code{geomc} automatically constructs a base density corresponding to a 
+#' random-walk proposal with an appropriate scale. If either or both of the mean and variance
+#' arguments and any of the density and sampling functions is missing for the approximate target density, 
+#' then \code{geomc} automatically constructs a diffuse multivariate normal distribution as the approximate target.
+#' 
+#' If the target distribution is a pmf (i.e., a discrete distribution) then the user must provide the base pmf \eqn{f} 
+#' and one or more \eqn{g_i}'s. The package vignette \code{vignette("geommc")} provides several useful choices for \eqn{f}
+#' and \eqn{g_i}. In addition, the user must set \code{gaus=FALSE} and either supply \code{bhat.coef} or set \code{imp$enabled=TRUE} 
+#' (neither of which is the default for \code{gaus} or \code{imp}). This ensures that the algorithm uses either the user defined 
+#' \code{bhat.coef} function or the importance sampling, rather than numerical integration or closed-form Gaussian expressions,
+#' for computing the Bhattacharyya coefficient \eqn{\langle \sqrt{f}, \sqrt{g_i} \rangle} for discrete distributions.
+#' 
+#' For a discussion and several illustrative examples of the \code{geomc} function, see the package vignette
+#' \code{vignette("geommc")}.
 #' @param logp Either a function that evaluates the logarithm of the un-normalized target density (pdf or pmf) to sample from, or
 #' a list containing at least one element named \code{log.target}. The list may optionally include any of the following elements
 #' specifying additional functions for the base and approximate target densities: \code{mean.base}, \code{var.base}, \code{dens.base},
-#' \code{samp.base}, \code{mean.ap.tar}, \code{var.ap.tar}, \code{dens.ap.tar}, and \code{samp.ap.tar}. See below for details of these functions.
+#' \code{samp.base}, \code{mean.ap.tar}, \code{var.ap.tar}, \code{dens.ap.tar}, \code{samp.ap.tar}, and \code{bhat.coef}. See below for details of these functions.
 #' Any optional elements not provided are treated as missing, and default behavior is applied.
 #' \itemize{
 #' \item \code{log.target} A function that evaluates the logarithm of the
@@ -49,9 +54,11 @@
 #'  \item \code{dens.base} is the density function of the base density \eqn{f}, needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.
 #'  \item \code{samp.base} is the function to draw from the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.
 #'  \item \code{mean.ap.tar} is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of the current state \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.
-#'  \item \code{var.ap.tar} is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.
+#'  \item \code{var.ap.tar} is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current state \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.
 #'  \item \code{dens.ap.tar} is the vector of densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.
 #'  \item \code{samp.ap.tar} is the function to draw from the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of (current state \eqn{x}, the indicator of component \eqn{kk}). It must return a vector of the length of that of the initial.
+#'  \item \code{bhat.coef} is the vector of Bhattacharyya coefficients \eqn{\langle \sqrt{f(\cdot|x)}, \sqrt{g_i(\cdot|x)} \rangle, i=1,\dots,k}. It needs to be written as a function of the current state \eqn{x}.
+#' When \code{gaus= TRUE}, the \code{bhat.coef} argument is ignored and the built-in function is used.
 #' }
 #' @param initial is the initial state.
 #' @param n.iter is the no. of samples needed.
@@ -63,24 +70,25 @@
 #'   This list has components:
 #'   \itemize{
 #'     \item \code{enabled} Logical. If \code{FALSE} (default),
-#'       numerical integration is used to compute
-#'       \eqn{\langle \sqrt{f}, \sqrt{g} \rangle}. If \code{TRUE},
+#'       numerical integration is used to compute the Bhattacharyya coefficient
+#'       \eqn{\langle \sqrt{f}, \sqrt{g_i} \rangle}. If \code{TRUE},
 #'       importance sampling is used instead.
 #'     \item \code{n.samp} A positive integer giving the number of Monte Carlo
 #'       samples used when \code{enabled = TRUE}.
 #'     \item \code{samp.base} Logical. If \code{TRUE}, the samples in the
 #'       importance sampler are drawn from the base density \eqn{f};
-#'       otherwise they are drawn from the target density \eqn{g}.
+#'       otherwise they are drawn from the approximate target density \eqn{g}.
 #'       Default is \code{FALSE}.
 #'   }
-#'   When \code{gaus = TRUE}, the \code{imp} argument is ignored.
+#'   When \code{gaus = TRUE}, the \code{imp} argument is ignored. Also, when \code{bhat.coef} is provided, 
+#'   the \code{imp} argument is ignored.
 #' @param a is the probability vector for the mixture proposal density. Default is the uniform distribution.
 #' @param show.progress Logical. Whether to show progress during sampling. Default: TRUE.
 #' @param ... additional arguments passed to \code{log.target}
 #' @return The function returns a list with the following components:
 #' \item{\code{samples}}{A matrix containing the MCMC samples. Each row is one sample.}
-#' \item{\code{log.p}}{A vector with the logarithm of the (un-normalized) target density for each MCMC sample.}
 #' \item{\code{acceptance.rate}}{The Metropolis-Hastings acceptance rate.}
+#' \item{\code{log.p}}{A vector with the logarithm of the (un-normalized) target density for each MCMC sample.}
 #' \item{\code{gaus}}{The value of the logical gaus.}
 #' \item{\code{ind}}{The value of the logical ind.}
 #' \item{\code{model.case}}{Describes whether default settings are used for both functions 
@@ -169,14 +177,20 @@
 #' @export
 
 geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=FALSE,n.samp=100,samp.base=TRUE),a=1,show.progress=TRUE,...){
+  if (missing(logp)) stop("logp must be provided")
+  
   if (is.function(logp)) {
     logtarget.user <- logp
     mean.base <- var.base <- dens.base <- samp.base <- NULL
     mean.ap.tar <- var.ap.tar <- dens.ap.tar <- samp.ap.tar <- NULL
+    bhat.coef <- NULL
   } else if (is.list(logp)) {
 
     if (!("log.target" %in% names(logp)))
       stop("If logp is a list, it must contain an element named 'log.target'.")
+    
+    if (!is.function(logp$log.target))
+      stop("logp$log.target must be a function")
 
     logtarget.user <- logp$log.target
 
@@ -189,12 +203,27 @@ geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=
     var.ap.tar  <- get_opt(logp, "var.ap.tar")
     dens.ap.tar <- get_opt(logp, "dens.ap.tar")
     samp.ap.tar <- get_opt(logp, "samp.ap.tar")
+    
+    bhat.coef <- get_opt(logp, "bhat.coef")
+    
+    optional_funcs <- list(
+      mean.base = mean.base, var.base = var.base, 
+      dens.base = dens.base, samp.base = samp.base,
+      mean.ap.tar = mean.ap.tar, var.ap.tar = var.ap.tar,
+      dens.ap.tar = dens.ap.tar, samp.ap.tar = samp.ap.tar,
+      bhat.coef = bhat.coef
+    )
+    
+    for (fname in names(optional_funcs)) {
+      if (!is.null(optional_funcs[[fname]]) && !is.function(optional_funcs[[fname]])) {
+        stop(sprintf("logp$%s must be a function if provided", fname))
+      }
+    }
     } else {
     stop("logp must be either a function or a list.")
   }
 
   log.target <- function(x) logtarget.user(x, ...)
-
 
     if (missing(initial)) {
       stop("The 'initial' argument must be provided.")
@@ -207,32 +236,88 @@ geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=
   if (length(initial) < 1) {
     stop("The 'initial' vector must have length at least 1.")
   }
-
+  
   if (any(!is.finite(initial))) {
     stop("All elements of 'initial' must be finite (no NA, NaN, or Inf).")
+  }
+  
+  test_eval <- try(log.target(initial), silent = TRUE)
+  
+  if (inherits(test_eval, "try-error")) {
+    stop("Could not evaluate log.target at 'initial'. Please check that log-density function is compatible with the initial values provided.")
+  }
+  
+  if (!is.numeric(test_eval) || length(test_eval) != 1) {
+    stop("log.target must return a single numeric value")
   }
 
   if(missing(n.iter)) stop("n.iter must be provided")
   check_positive_integer(n.iter, "n.iter")
 
-  if(log.target(initial)==-Inf || is.na(log.target(initial))) stop("the initial state must satisfy log.target(initial) > -Inf")
-
+  logp_initial <- log.target(initial)
+  if(is.na(logp_initial)) {
+    stop("log.target(initial) returns NA")
+  }
+  if(logp_initial == -Inf) {
+    stop("log.target(initial) is -Inf. The initial state must have positive (non-zero) density.")
+  }
+  if(logp_initial == Inf) {
+    stop("log.target(initial) is Inf. Please check your log-density function.")
+  }
+  
   check_fraction_01(eps, "eps")
-  if (!is.logical(imp$enabled)) stop("imp$enabled must be logical")
-  if (!is.logical(imp$samp.base)) stop("imp$samp.base must be logical")
+  
+  if (!is.logical(ind) || length(ind) != 1 || is.na(ind))
+    stop("ind must be a single logical value (TRUE or FALSE)")
+  
+  if (!is.logical(gaus) || length(gaus) != 1 || is.na(gaus))
+    stop("gaus must be a single logical value (TRUE or FALSE)")
+  
+  if (!is.list(imp))
+    stop("imp must be a list")
+  
+  if (!("enabled" %in% names(imp)))
+    stop("imp must contain element 'enabled'")
+  if (!("n.samp" %in% names(imp)))
+    stop("imp must contain element 'n.samp'")
+  if (!("samp.base" %in% names(imp)))
+    stop("imp must contain element 'samp.base'")
+  
+  if (!is.logical(imp$enabled) || length(imp$enabled) != 1 || is.na(imp$enabled))
+    stop("imp$enabled must be a single logical value")
+  if (!is.logical(imp$samp.base) || length(imp$samp.base) != 1 || is.na(imp$samp.base))
+    stop("imp$samp.base must be a single logical value")
   if (imp$enabled) check_positive_integer(imp$n.samp, "imp$n.samp")
+  
+  if (!is.numeric(a) || any(is.na(a)) || any(!is.finite(a)) || any(a < 0))
+    stop("a must be a numeric vector of non-negative finite values")
+  if (sum(a) == 0)
+    stop("a must have at least one positive element")
 
+  a <- a / sum(a)
+  
+  if (!is.logical(show.progress) || length(show.progress) != 1 || is.na(show.progress))
+    stop("show.progress must be a single logical value (TRUE or FALSE)")
+  
   dd=length(initial)
 
-
   if(!is.null(mean.base)){
-    mb <- mean.base(initial)
-    if(length(mb)!=dd) stop("mean.base must return a vector of same length as initial")
-    if(any(is.infinite(mb))||any(is.na(mb)))stop("mean.base at initial is not finite")
+    mb <- try(mean.base(initial), silent = TRUE)
+    if (inherits(mb, "try-error"))
+      stop("mean.base(initial) produced an error")
+    if(!is.numeric(mb))
+      stop("mean.base must return a numeric vector")
+    if(length(mb)!=dd) 
+      stop(sprintf("mean.base must return a vector of length %d (same as initial)", dd))
+    if(any(is.infinite(mb))||any(is.na(mb)))
+      stop("mean.base(initial) is not finite")
   }
-
+  
   if(!is.null(var.base)){
-    vb<-var.base(initial)
+    vb <- try(var.base(initial), silent = TRUE)
+    if (inherits(vb, "try-error"))
+      stop("var.base(initial) produced an error")
+    
     if (dd == 1) {
       if (!is.numeric(vb) || length(vb) != 1 || vb <= 0) {
         stop("var.base(x) must return a positive scalar variance when initial has length 1.")
@@ -241,35 +326,70 @@ geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=
       if (!is.matrix(vb) || any(dim(vb) != c(dd, dd))) {
         stop(sprintf("var.base(x) must return a %d x %d covariance matrix.", dd, dd))
       }
+      if (!isSymmetric(vb)) {
+        stop("var.base(x) must return a symmetric matrix")
+      }
       if (!is_pd(vb)) {
         stop("var.base(x) must be positive definite.")
       }
     }
   }
-
+  
   if(!is.null(dens.base)){
-    db<-dens.base(initial,initial)
-    if(is.infinite(db)||is.na(db))stop("dens.base at initial is not finite")
+    db <- try(dens.base(initial, initial), silent = TRUE)
+    if (inherits(db, "try-error"))
+      stop("dens.base(initial, initial) produced an error")
+    if(!is.numeric(db) || length(db) != 1)
+      stop("dens.base must return a single numeric value")
+    if(is.infinite(db)||is.na(db))
+      stop("dens.base(initial, initial) is not finite")
+    if(db < 0)
+      stop("dens.base must return non-negative values (it's a density)")
   }
-
+  
   if(!is.null(samp.base)){
-    sb<-samp.base(initial)
-    if(any(is.infinite(sb))||any(is.na(sb)))stop("samp.base at initial does not return finite values")
+    sb <- try(samp.base(initial), silent = TRUE)
+    if (inherits(sb, "try-error"))
+      stop("samp.base(initial) produced an error")
+    if(!is.numeric(sb))
+      stop("samp.base must return a numeric vector")
+    if(length(sb) != dd)
+      stop(sprintf("samp.base must return a vector of length %d (same as initial)", dd))
+    if(any(is.infinite(sb))||any(is.na(sb)))
+      stop("samp.base(initial) does not return finite values")
   }
-
+  
   if(!is.null(dens.ap.tar)){
-    dap<-dens.ap.tar(initial,initial)
-    if(any(is.infinite(dap))||any(is.na(dap)))stop("dens.ap.tar at initial is not finite")
+    dap <- try(dens.ap.tar(initial, initial), silent = TRUE)
+    if (inherits(dap, "try-error"))
+      stop("dens.ap.tar(initial, initial) produced an error")
+    if(!is.numeric(dap))
+      stop("dens.ap.tar must return a numeric vector")
+    if(any(is.infinite(dap))||any(is.na(dap)))
+      stop("dens.ap.tar(initial, initial) is not finite")
+    if(any(dap < 0))
+      stop("dens.ap.tar must return non-negative values (it's a density)")
   }
-
+  
   if(!is.null(mean.ap.tar)){
-    mapt<-mean.ap.tar(initial)
-    if(any(is.infinite(mapt))||any(is.na(mapt)))stop("mean.ap.tar at initial is not finite")
+    mapt <- try(mean.ap.tar(initial), silent = TRUE)
+    if (inherits(mapt, "try-error"))
+      stop("mean.ap.tar(initial) produced an error")
+    if(!is.numeric(mapt))
+      stop("mean.ap.tar must return a numeric vector")
+    if(any(is.infinite(mapt))||any(is.na(mapt)))
+      stop("mean.ap.tar(initial) is not finite")
+    
     k=length(mapt)/dd
+    if(k != round(k) || k < 1)
+      stop(sprintf("length of mean.ap.tar(initial) must be a positive multiple of length(initial) = %d", dd))
+    k <- as.integer(k)
+    
     if(!is.null(var.ap.tar)){
-      if(!checkFuncArgs(var.ap.tar, "x")) stop("var.ap.tar must be a function with only one argument \"x\"")
-
-      vat<- var.ap.tar(initial)
+      vat <- try(var.ap.tar(initial), silent = TRUE)
+      if (inherits(vat, "try-error"))
+        stop("var.ap.tar(initial) produced an error")
+      
       if (dd == 1) {
         if (!is.numeric(vat) || length(vat) != k || any(vat <= 0)) {
           stop(sprintf(
@@ -279,40 +399,73 @@ geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=
         }
       } else {
         if (!is.matrix(vat) || any(dim(vat) != c(dd, k * dd))) {
-          stop(sprintf("var.ap.tar(x) must return a %d times %d covariance matrix.", dd, k * dd))
+          stop(sprintf("var.ap.tar(x) must return a %d x %d covariance matrix.", dd, k * dd))
         }
         non_pd <- sapply(seq_len(k), function(ii) {
-          !is_pd(vat[, ((ii - 1) * dd + 1):(ii * dd)])
+          block <- vat[, ((ii - 1) * dd + 1):(ii * dd)]
+          !isSymmetric(block) || !is_pd(block)
         })
         if (any(non_pd)) {
-          stop("var.ap.tar must be a set of positive definite matrices, each of dimension length(initial) times length(initial), combined by columns.")
+          stop("var.ap.tar must be a set of positive definite symmetric matrices, each of dimension length(initial) x length(initial), combined by columns.")
         }
       }
-      }
-
-    if(!is.null(dens.ap.tar)){
-
-      if(k!=length(dens.ap.tar(initial)))stop("dens.ap.tar and mean.ap.tar must return the means and densities of the same number of distributions")
     }
-  }else if(!is.null(dens.ap.tar)){
-    k=length(dens.ap.tar(initial))
-  }else{
+    if(!is.null(dens.ap.tar)){
+      dap_len <- length(dens.ap.tar(initial, initial))
+      if(k != dap_len)
+        stop(sprintf("Inconsistency: dens.ap.tar returns %d values but mean.ap.tar implies k=%d components. These must match.", dap_len, k))
+    }
+  } else if(!is.null(dens.ap.tar)){
+    dap_len <- length(dens.ap.tar(initial, initial))
+    k <- dap_len
+    if(k < 1)
+      stop("dens.ap.tar must return at least one density value")
+  } else{
     k=1
   }
-
+  
+  
   if(!is.null(samp.ap.tar)){
     for(ii in 1:k){
-      sat<-samp.ap.tar(initial,kk=ii)
-      if(any(is.infinite(sat))||any(is.na(sat)))stop("samp.ap.tar at initial does not return finite values")
-    if(length(sat)!=dd) stop("samp.ap.tar must return a sample of the same size as initial")
+      sat <- try(samp.ap.tar(initial, kk=ii), silent = TRUE)
+      if (inherits(sat, "try-error"))
+        stop(sprintf("samp.ap.tar(initial, kk=%d) produced an error", ii))
+      if(!is.numeric(sat))
+        stop("samp.ap.tar must return a numeric vector")
+      if(any(is.infinite(sat))||any(is.na(sat)))
+        stop(sprintf("samp.ap.tar(initial, kk=%d) does not return finite values", ii))
+      if(length(sat)!=dd) 
+        stop(sprintf("samp.ap.tar must return a vector of length %d (same as initial)", dd))
     }
   }
 
+  if(!is.null(bhat.coef)){
+    bhval <- try(bhat.coef(initial), silent = TRUE)
+    if (inherits(bhval, "try-error"))
+      stop("bhat.coef(initial) produced an error")
+    if(!is.numeric(bhval))
+      stop("bhat.coef must return a numeric vector")
+    if(any(is.infinite(bhval))||any(is.na(bhval)))
+      stop("bhat.coef(initial) is not finite")
+    if(any(bhval < 0))
+      stop("bhat.coef must return non-negative values")
+    if(any(bhval >1))
+      stop("bhat.coef must return values less than or equal to one")
+    bhval_len <- length(bhat.coef(initial))
+    if(k != bhval_len)
+      stop(sprintf("Inconsistency: bhat.coef returns %d values but mean.ap.tar implies k=%d components. These must match.", bhval_len, k))
+    if(bhval_len < 1)
+      stop("bhat.coef must return at least one value")
+  }
+  
+  
   if(imp$enabled){
     if(imp$samp.base){
-      if(is.null(samp.base)) stop("samp.base must be provided to implement importance sampling with samp.base=TRUE")
+      if(is.null(samp.base)) 
+        stop("samp.base must be provided to implement importance sampling with samp.base=TRUE")
     }else{
-      if(is.null(samp.ap.tar)) stop("samp.ap.tar must be provided to implement importance sampling with samp.base=FALSE")
+      if(is.null(samp.ap.tar)) 
+        stop("samp.ap.tar must be provided to implement importance sampling with samp.base=FALSE")
     }
   }
 
@@ -424,6 +577,10 @@ geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=
       }
     }
   }
+  
+  if(gaus){
+    bhat.coef <- NULL
+  }
 
   if (isTRUE(show.progress)) {
     if (!requireNamespace("progress", quietly = TRUE)) {
@@ -447,12 +604,11 @@ geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=
   curr <- initial
   log.tar_curr<-log.target(curr)
   eps <- eps
-  a<-a/sum(a)
-
+  
   calc  <- compute_prod_theta(curr, k, gaus, imp,
                               mean.base, var.base, dens.base, samp.base,
                               mean.ap.tar, var.ap.tar, dens.ap.tar, samp.ap.tar,
-                              diag.v.ap, dd)
+                              bhat.coef, diag.v.ap, dd)
 
   if (ind) {
     prod  <- calc[, 1]
@@ -479,7 +635,7 @@ geomc=function(logp,initial,n.iter,eps=0.5,ind=FALSE,gaus=TRUE,imp=list(enabled=
       calc_p   <- compute_prod_theta(proposed, k, gaus, imp,
                                      mean.base, var.base, dens.base, samp.base,
                                      mean.ap.tar, var.ap.tar, dens.ap.tar, samp.ap.tar,
-                                     diag.v.ap, dd)
+                                     bhat.coef, diag.v.ap, dd)
       prod_p   <- calc_p[, 1]
       theta_p  <- calc_p[, 2]
     }

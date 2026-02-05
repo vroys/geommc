@@ -64,9 +64,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// logp_vs_in
-double logp_vs_in(IntegerVector model, const arma::mat& X, double yty, const arma::vec& Xty, double mult_c, double add_c, double lam, double logw);
-RcppExport SEXP _geommc_logp_vs_in(SEXP modelSEXP, SEXP XSEXP, SEXP ytySEXP, SEXP XtySEXP, SEXP mult_cSEXP, SEXP add_cSEXP, SEXP lamSEXP, SEXP logwSEXP) {
+// logp_vs_in_dense
+double logp_vs_in_dense(IntegerVector model, const arma::mat& X, double yty, const arma::vec& Xty, double mult_c, double add_c, double lam, double logw);
+RcppExport SEXP _geommc_logp_vs_in_dense(SEXP modelSEXP, SEXP XSEXP, SEXP ytySEXP, SEXP XtySEXP, SEXP mult_cSEXP, SEXP add_cSEXP, SEXP lamSEXP, SEXP logwSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -78,7 +78,25 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type add_c(add_cSEXP);
     Rcpp::traits::input_parameter< double >::type lam(lamSEXP);
     Rcpp::traits::input_parameter< double >::type logw(logwSEXP);
-    rcpp_result_gen = Rcpp::wrap(logp_vs_in(model, X, yty, Xty, mult_c, add_c, lam, logw));
+    rcpp_result_gen = Rcpp::wrap(logp_vs_in_dense(model, X, yty, Xty, mult_c, add_c, lam, logw));
+    return rcpp_result_gen;
+END_RCPP
+}
+// logp_vs_in_sparse
+double logp_vs_in_sparse(IntegerVector model, const arma::sp_mat& X, double yty, const arma::vec& Xty, double mult_c, double add_c, double lam, double logw);
+RcppExport SEXP _geommc_logp_vs_in_sparse(SEXP modelSEXP, SEXP XSEXP, SEXP ytySEXP, SEXP XtySEXP, SEXP mult_cSEXP, SEXP add_cSEXP, SEXP lamSEXP, SEXP logwSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< double >::type yty(ytySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Xty(XtySEXP);
+    Rcpp::traits::input_parameter< double >::type mult_c(mult_cSEXP);
+    Rcpp::traits::input_parameter< double >::type add_c(add_cSEXP);
+    Rcpp::traits::input_parameter< double >::type lam(lamSEXP);
+    Rcpp::traits::input_parameter< double >::type logw(logwSEXP);
+    rcpp_result_gen = Rcpp::wrap(logp_vs_in_sparse(model, X, yty, Xty, mult_c, add_c, lam, logw));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -149,7 +167,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_geommc_ldens_mvnormchol", (DL_FUNC) &_geommc_ldens_mvnormchol, 3},
     {"_geommc_rmvnorm", (DL_FUNC) &_geommc_rmvnorm, 2},
     {"_geommc_bc", (DL_FUNC) &_geommc_bc, 5},
-    {"_geommc_logp_vs_in", (DL_FUNC) &_geommc_logp_vs_in, 8},
+    {"_geommc_logp_vs_in_dense", (DL_FUNC) &_geommc_logp_vs_in_dense, 8},
+    {"_geommc_logp_vs_in_sparse", (DL_FUNC) &_geommc_logp_vs_in_sparse, 8},
     {"_geommc_colSumSq_dge", (DL_FUNC) &_geommc_colSumSq_dge, 2},
     {"_geommc_colSumSq_matrix", (DL_FUNC) &_geommc_colSumSq_matrix, 1},
     {"_geommc_colMSD_dgc", (DL_FUNC) &_geommc_colMSD_dgc, 2},

@@ -1,5 +1,16 @@
 #' @noRd
 #' @keywords internal
+logp_vs_in <- function(model, X, yty, Xty, mult_c, add_c, lam, logw) {
+  if (is.null(model)) {
+    model <- integer(0)
+  }
+  
+  if (inherits(X, "dgCMatrix") || inherits(X, "sparseMatrix")) {
+    logp_vs_in_sparse(model, X, yty, Xty, mult_c, add_c, lam, logw)
+  } else {
+    logp_vs_in_dense(model, X, yty, Xty, mult_c, add_c, lam, logw)
+  }
+}
 thet_vs <- function(model, logp.add, logp.del, logp.swap, logp.best, log_cc, ncovar, symm, move.prob) {
   dim <- length(model)
   half_logp.add <- 0.5 * (logp.add - logp.best - log_cc)
@@ -84,7 +95,6 @@ dens_f_vs <- function(proposed, curr, ncovar, symm, move.prob) {
   p0 <- length(curr)
   p1 <- length(proposed)
   
-  # Fast rejection
   if (abs(p1 - p0) > 1L)
     return(0)
   
@@ -107,6 +117,10 @@ dens_f_vs <- function(proposed, curr, ncovar, symm, move.prob) {
     }
     return(move.prob[3L] / (p0 * (ncovar - p0)))
   }
+  
+  n_diff <- sum(!curr %in% proposed) + sum(!proposed %in% curr)
+  if (n_diff != 1L)
+    return(0)
   
   if (p1 == p0 + 1L) {         # add
     if (symm) {
@@ -137,6 +151,8 @@ samp_g_vs <- function(model, ncovar, logp.add, logp.del, logp.swap, logp.best)
 {
   p0 <- length(model)
   p  <- ncovar
+  if (p0 > p)
+    stop("model size must be smaller than the no. of covariates")
   
   if (p0 == 0L) {
     lp  <- logp.add - max(logp.add)
@@ -167,17 +183,21 @@ samp_g_vs <- function(model, ncovar, logp.add, logp.del, logp.swap, logp.best)
   
   # ---------- DELETE ----------
   if (move == 2L) {
+    #logp.del<-logp.del[logp.del!=-Inf]
     lp  <- logp.del - max(logp.del)
-    idx <- sample.int(p0, 1L, prob = exp(lp[model]))
-    return(model[-idx])
+    idx <- sample.int(p, 1L, prob = exp(lp))
+    #idx <- sample.int(p0, 1L, prob = exp(lp))
+    #return(model[-idx])
+    return(setdiff(model, idx))
   }
   
   # ---------- SWAP ----------
   lp <- logp.swap - max(logp.swap)
   idx    <- sample.int(p * p0, 1L, prob = exp(lp))
   
-  swapin      <- ((idx - 1L) %% p) + 1L
-  swapout_pos <- ((idx - 1L) %/% p) + 1L
+  
+  swapin     <- ((idx - 1L) %% p) + 1L  
+  swapout_pos  <- ((idx - 1L) %/% p) + 1L   
   
   model[swapout_pos] <- swapin
   

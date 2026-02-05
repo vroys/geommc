@@ -14,7 +14,8 @@ logp.vs(model, X, y, lam0 = 0, a0 = 0, b0 = 0, lam, w)
 
 \item{y}{The response vector of length \eqn{n}.}
 
-\item{lam0}{The precision parameter for \eqn{\beta_0}. Default: 0 (corresponding to improper uniform prior).}
+\item{lam0}{The precision parameter for \eqn{\beta_0}. Default: 0
+(corresponding to the improper uniform prior).}
 
 \item{a0}{The shape parameter for prior on \eqn{\sigma^2}. Default: 0.}
 

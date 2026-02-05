@@ -6,7 +6,7 @@
 \alias{geommc-package}
 \title{geommc: Geometric Markov Chain Sampling}
 \description{
-Simulates from discrete and continuous target distributions using geometric Metropolis-Hastings (MH) algorithms. Users specify the target distribution by an R function that evaluates the log un-normalized pdf or pmf. The package also contains a function implementing a specific geometric MH algorithm for performing high dimensional Bayesian variable selection.
+Simulates from discrete and continuous target distributions using geometric Metropolis-Hastings (MH) algorithms. Users specify the target distribution by an R function that evaluates the log un-normalized pdf or pmf. The package also contains a function implementing a specific geometric MH algorithm for performing high-dimensional Bayesian variable selection.
 }
 \seealso{
 Useful links:

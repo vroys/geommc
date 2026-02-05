@@ -1,0 +1,884 @@
+---
+title: "Bayesian variable selection with geomc.vs"
+author: "Vivekananda Roy"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    fig_width: 6
+    fig_height: 4
+    dev: 'pdf'
+    keep_tex: false
+bibliography: references.bib
+link-citations: true
+vignette: >
+  %\VignetteIndexEntry{Bayesian variable selection with geomc.vs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = FALSE,
+  tidy = FALSE,
+  comment = "#>",
+  progress = FALSE,
+  echo = TRUE,
+  dev = 'pdf',
+  dpi = 120,
+  fig.width = 6,
+  fig.height = 4,
+  out.width = "100%"
+)
+```
+
+## Introduction
+
+Bayesian variable selection is an approach to identifying important predictors in regression models, particularly when the number of predictors $p$ is large relative to the number of observations $n$. The `geomc.vs()` function implements geometric MCMC [@roy2024] for high-dimensional Bayesian variable selection in linear regression. In particular, `geomc.vs` implements the geometric MH algorithm [@roy2024] with  specific choices for $f$ and $g$ for sampling from a popular 'spike and slab' Bayesian variable selection model. The details of the variable selection model and the MH algorithm can be found in @roy2024 (See also the appendix of this document for a description of the model.). This vignette illustrates the use of `geomc.vs`.
+
+### The Variable Selection Problem
+
+Given:
+- Response vector $\mathbf{y} \in \mathbb{R}^n$
+
+- Predictor matrix $\mathbf{X} \in \mathbb{R}^{n \times p}$
+
+We want to identify which subset of the $p$ predictors are truly associated with the response. This is especially challenging when $p \gg n$ (high-dimensional setting).
+
+### Why Bayesian Variable Selection?
+
+**Advantages:**
+
+- Quantifies uncertainty about which variables to include
+
+- Provides posterior inclusion probability for each variable
+
+- Handles model uncertainty systematically
+
+```{r setup}
+library(geommc)
+```
+
+## Basic Usage
+
+The `geomc.vs()` function requires minimal inputs:
+```{r basic-usage, eval=FALSE}
+result <- geomc.vs(
+  X = X,              # n \times p predictor matrix
+  y = y               # n-vector response
+)
+```
+
+# Example 1:
+
+##  Small Sparse Model
+
+Let's start with a simple example where only 3 out of 100 predictors are truly important.
+
+## Data Generation
+```{r data-1}
+# Set parameters
+n <- 50          # Sample size
+p <- 100         # Number of predictors
+nonzero <- 3     # Number of true predictors
+trueidx <- 1:3   # Indices of true predictors
+nonzero.value <- 4  # Effect size
+
+# True regression coefficients
+TrueBeta <- numeric(p)
+TrueBeta[trueidx] <- nonzero.value
+
+# Generate correlated predictors
+rho <- 0.5
+set.seed(3)
+xone <- matrix(rnorm(n * p), n, p)
+X <- sqrt(1 - rho) * xone + sqrt(rho) * rnorm(n)
+
+# Generate response
+intercept <- 0.5
+sigma_true <- 1
+y <- intercept + X %*% TrueBeta + rnorm(n, 0, sigma_true)
+
+cat("Data dimensions:\n")
+cat("  n (observations):", n, "\n")
+cat("  p (predictors):", p, "\n")
+cat("  Number of true non-zero predictors:", nonzero, "\n")
+cat("  True coefficient indices:", paste(trueidx, collapse = ", "), "\n")
+cat("  True coefficient values:", nonzero.value, "\n")
+```
+
+## Run geomc.vs for Variable Selection
+```{r run-vs-1}
+# Run geomc.vs
+set.seed(123)
+result <- geomc.vs(
+  X = X,
+  y = y,
+  model.summary = TRUE # Compute model summaries
+)
+```
+
+## Examining the Results
+
+If `model.summary` is set TRUE, `geomc.vs()` function returns a comprehensive list of results:
+```{r results-structure}
+names(result)
+```
+
+Key components:
+
+- **`samples`**: MCMC samples of model indicators (which variables are included)  returned as a `n.iter` $\times p$ sparse lgCMatrix.
+- **`acceptance.rate`**: Proportion of accepted proposals
+- **`log.p`**: Log unnormalized posterior probabilities of sampled models
+- **`mip`**: Marginal inclusion probabilities for each variable
+- **`wmip`**: Weighted marginal inclusion probabilities for each variable
+- **`median.model`**: The median probability model
+- **`wam`**: The weighted average model
+- **`beta.mean`**: Posterior mean of regression coefficients
+- **`beta.wam`**: An alternative (model probability weighted) estimate of posterior mean of regression coefficients
+
+On the other hand, if `model.summary` is set FALSE (Default value), `geomc.vs` only returns `samples`, `acceptance.rate` and `log.p`.
+
+
+## Marginal Inclusion Probabilities (MIP)
+
+The MIP for variable $j$ is the posterior probability that variable $j$ should be included in the model:
+
+$$\text{MIP}_j = P(\beta_j \neq 0 | \mathbf{y}, \mathbf{X})$$
+The formula used by `geomc.vs` to compute MIP is given in the appendix.
+
+```{r mip-1}
+# Top 10 variables by MIP
+top_vars <- order(result$mip, decreasing = TRUE)[1:10]
+
+cat("Top 10 variables by Marginal Inclusion Probability:\n\n")
+mip_df <- data.frame(
+  Variable = top_vars,
+  MIP = round(result$mip[top_vars], 4),
+  True = ifelse(top_vars %in% trueidx, "Yes", "No")
+)
+print(mip_df, row.names = FALSE)
+```
+
+## Visualizing Marginal Inclusion Probabilities
+```{r plot-mip-1, fig.width=6, fig.height=4}
+par(mfrow = c(1, 1))
+
+# Plot MIPs
+plot(1:p, result$mip, 
+     type = "h", lwd = 2, col = "gray",
+     xlab = "Variable Index", 
+     ylab = "MIP",
+     main = "Marginal Inclusion Probabilities",
+     ylim = c(0, 1))
+
+# Highlight true variables
+points(trueidx, result$mip[trueidx], 
+       col = "red", pch = 19, cex = 2)
+
+# Add threshold line
+abline(h = 0.5, col = "blue", lty = 2, lwd = 2)
+
+legend("topright", 
+       legend = c("True variables", "MIP > 0.5 threshold"),
+       col = c("red", "blue"), 
+       pch = c(19, NA), 
+       lty = c(NA, 2),
+       lwd = 2)
+```
+
+## The Median Probability Model
+
+The returned median probability model includes all variables with `mip` > `model.threshold` (Default 0.5):
+
+```{r median-model-1}
+cat("Median Probability Model:\n")
+cat("  Number of variables selected:", length(result$median.model), "\n")
+cat("  Variable indices:", paste(result$median.model, collapse = ", "), "\n\n")
+
+# Check if we recovered the true model
+correctly_identified <- all(trueidx %in% result$median.model)
+false_positives <- setdiff(result$median.model, trueidx)
+false_negatives <- setdiff(trueidx, result$median.model)
+
+cat("Model Recovery:\n")
+cat("  All true variables identified:", correctly_identified, "\n")
+cat("  Number of false positives:", length(false_positives), "\n")
+cat("  Number of false negatives:", length(false_negatives), "\n")
+
+if (length(false_positives) > 0) {
+  cat("  False positive indices:", paste(false_positives, collapse = ", "), "\n")
+}
+```
+
+## Posterior Mean of Coefficients
+
+```{r coef-estimates-1}
+# Compare estimated vs true coefficients for true variables
+cat("Coefficient Estimates (True Variables):\n\n")
+coef_comparison <- data.frame(
+  Variable = trueidx,
+  True_Beta = TrueBeta[trueidx],
+  Posterior_Mean = round(result$beta.mean[(1+trueidx)], 3),
+  Beta_WAM = round(result$beta.wam[(1+trueidx)], 3),
+  MIP = round(result$mip[trueidx], 4)
+)
+print(coef_comparison)
+intercept_comparison<- data.frame(
+  True_intercept =intercept,
+  Posterior_Mean = round(result$beta.mean[1], 3),
+  Beta_WAM = round(result$beta.wam[1], 3)
+)
+print(intercept_comparison)
+```
+
+The formulas used by `geomc.vs` to compute `beta.mean` and `beta.wam` are given in the appendix.
+
+## Model Space Exploration
+
+```{r model-space, fig.width=7, fig.height=5}
+# Model sizes visited
+model_sizes <- apply(result$samples, 1, sum)
+
+hist(model_sizes, breaks = 20, 
+     main = "Distribution of Model Sizes Visited",
+     xlab = "Number of Variables in Model",
+     col = "lightblue", border = "white")
+abline(v = nonzero, col = "red", lwd = 3, lty = 2)
+legend("topright", 
+       legend = "True model size",
+       col = "red", lty = 2, lwd = 2)
+
+cat("\nModel Size Summary:\n")
+cat("  Mean model size:", round(mean(model_sizes), 2), "\n")
+cat("  Median model size:", median(model_sizes), "\n")
+cat("  True model size:", nonzero, "\n")
+```
+# Example 2:
+
+##  Another Example to Illustrate Different Data Structures and Tuning Parameters
+
+This example demonstrates how to use `geomc.vs()` for variable selection with sparse matrices, such as document term matrices commonly found in text mining applications. Different tuning parameters allowed by `geomc.vs()` will also be discussed. In particular, we'll show how to:
+
+- Generate realistic sparse data
+- Handle zero-variance columns
+- Discuss tuning parameters in `geomc.vs()`
+- Run Bayesian variable selection
+- Analyze and visualize results
+
+
+## Data Generation
+
+## Generate Sparse Data
+
+We'll create a document-term matrix where most entries are zero (sparse), simulating a text classification problem.
+
+```{r generate-sparse-data}
+# Problem dimensions
+n <- 80        # Number of documents
+p <- 200       # Vocabulary size (number of words)
+sparsity <- 0.95  # 95% of entries are zero
+
+# True important words (only 5 words matter)
+true_words <- c(10, 25, 50, 100, 150)
+true_effects <- c(2.5, -2.0, 3.0, -1.8, 2.2)
+
+# Create sparse design matrix (document-term matrix)
+# Most words don't appear in most documents
+X_dense <- matrix(0, n, p)
+
+# Add word counts (Poisson distributed when word appears)
+set.seed(3)
+for (i in 1:n) {
+  # Each document has about 5% of words present
+  present_words <- sample(1:p, size = round(p * (1 - sparsity)))
+  X_dense[i, present_words] <- rpois(length(present_words), lambda = 2)
+}
+
+# Ensure true words appear with higher frequency
+for (word in true_words) {
+  appears_in <- sample(1:n, size = round(0.7 * n))
+  X_dense[appears_in, word] <- rpois(length(appears_in), lambda = 3)
+}
+
+# Remove zero-variance columns
+col_vars <- apply(X_dense, 2, var)
+nonzero_cols <- which(col_vars > 0)
+
+cat("Original number of columns:", p, "\n")
+cat("Columns with zero variance:", sum(col_vars == 0), "\n")
+cat("Columns retained:", length(nonzero_cols), "\n\n")
+
+# Keep mapping from new to old indices
+old_to_new <- rep(NA, p)
+old_to_new[nonzero_cols] <- 1:length(nonzero_cols)
+
+# Update X_dense to only include non-zero variance columns
+X_dense <- X_dense[, nonzero_cols, drop = FALSE]
+
+# Update true_words indices to reflect new column positions
+true_words_old <- true_words
+true_words <- match(true_words_old, nonzero_cols)
+true_words <- true_words[!is.na(true_words)]  # Keep only those that survived
+
+cat("Original true words:", paste(true_words_old, collapse = ", "), "\n")
+cat("New true words indices:", paste(true_words, collapse = ", "), "\n")
+cat("True words retained:", length(true_words), "out of", length(true_words_old), "\n\n")
+
+# Update true_effects to match retained true words
+true_effects <- true_effects[!is.na(match(true_words_old, nonzero_cols))]
+
+# Update p to reflect actual number of columns
+p <- ncol(X_dense)
+cat("Updated p:", p, "\n\n")
+
+library(Matrix)
+# Convert to sparse matrix (dgCMatrix)
+X_sparse <- Matrix(X_dense, sparse = TRUE)
+
+# Check sparsity
+actual_sparsity <- 1 - (nnzero(X_sparse) / (n * p))
+cat("Actual sparsity:", round(actual_sparsity * 100, 1), "%\n")
+cat("Non-zero elements:", nnzero(X_sparse), "\n")
+cat("Matrix class:", class(X_sparse), "\n")
+```
+
+## Visualize Sparse Matrix Structure
+
+```{r visualize-sparse, fig.width=6, fig.height=4}
+# Visualize the sparse matrix pattern
+image(
+    x = 1:min(100, p),
+    y = 1:min(50, n),
+    z = as.matrix(t(X_sparse[1:min(50, n), 1:min(100, p)])),
+    main = "Sparse Matrix Pattern (50 docs × 100 words)",
+    ylab = "Documents",
+    xlab = "Words",
+    col = colorRampPalette(c("white", "blue", "darkblue"))(100)
+)
+```
+
+## Memory Comparison
+
+One of the main advantages of sparse matrices is memory efficiency:
+
+```{r memory-comparison}
+# Compare memory usage
+size_sparse <- object.size(X_sparse)
+size_dense <- object.size(X_dense)
+
+cat("Memory usage:\n")
+cat("  Sparse matrix:", format(size_sparse, units = "Kb"), "\n")
+cat("  Dense matrix:", format(size_dense, units = "Kb"), "\n")
+cat("  Reduction:", 
+    round(100 * (1 - as.numeric(size_sparse) / as.numeric(size_dense)), 1), 
+    "%\n")
+```
+
+## Generate Response Variable
+
+```{r generate-response}
+# Create coefficient vector (now with updated p)
+beta_true <- numeric(p)
+beta_true[true_words] <- true_effects
+
+# Generate response (document sentiment/category)
+set.seed(3)
+linear_predictor <- X_sparse %*% beta_true
+y <- as.numeric(linear_predictor) + rnorm(n, sd = 1.5)
+
+cat("Response variable summary:\n")
+print(summary(y))
+```
+
+## Variable Selection using geomc.vs with Symmetric Random Walk Base
+
+By default, `geomc.vs` implements the symmetric random walk base by setting `symm=TRUE` (for details, see @roy2024). Now, we apply `geomc.vs()` with the sparse matrix:
+
+```{r run-geomc-vs}
+# Run variable selection
+set.seed(123)
+result <- geomc.vs(
+  X = X_sparse,         # Sparse dgCMatrix
+  y = y,
+  model.summary = TRUE # Compute model summaries (default: FALSE)
+)
+```
+## Understanding the Output
+
+### MCMC Samples
+
+The `samples` matrix contains binary indicators for which variables are in the model at each iteration:
+```{r samples-explained}
+# Dimensions
+cat("Sample matrix dimensions:", dim(result$samples), "\n")
+cat("(rows = iterations, columns = variables)\n\n")
+
+# First few iterations
+cat("First 5 iterations (first 10 variables):\n")
+print(result$samples[1:5, 1:20])
+
+# Each row is a model
+cat("\nIteration 1 includes variables:", which(result$samples[1, ] == 1), "\n")
+cat("Iteration 2 includes variables:", which(result$samples[2, ] == 1), "\n")
+
+# The proportion of accepted proposals
+cat("\nAcceptance rate:", round(result$acceptance.rate, 3), "\n")
+```
+### Log Posterior Values
+
+The `log.p` vector contains the log posterior probability for each sampled model:
+```{r logpost, fig.width=6, fig.height=4}
+# Trace plot of log posterior
+plot(result$log.p, type = "l",
+     xlab = "Iteration", ylab = "Log Posterior",
+     main = "Trace of Log Posterior Probability")
+
+cat("\nLog posterior summary:\n")
+cat("  Min:", round(min(result$log.p), 2), "\n")
+cat("  Max:", round(max(result$log.p), 2), "\n")
+cat("  Mean:", round(mean(result$log.p), 2), "\n")
+```
+## Results Analysis
+
+## Marginal Inclusion Probabilities
+
+As mentioned before, MIP represents how often each variable was included in the sampled models.
+
+```{r mip-analysis}
+# Identify top words by MIP
+top_n <- 20
+top_indices <- order(result$mip, decreasing = TRUE)[1:top_n]
+
+cat("Top", top_n, "words by Marginal Inclusion Probability:\n\n")
+cat("(Note: Word indices are in the reduced matrix space)\n\n")
+
+mip_table <- data.frame(
+  Rank = 1:top_n,
+  Word_Index = top_indices,
+  MIP = round(result$mip[top_indices], 4),
+  True_Word = ifelse(top_indices %in% true_words, "Yes", "No"),
+  True_Effect = ifelse(
+    top_indices %in% true_words,
+    sprintf("%.2f", beta_true[top_indices]),
+    ""
+  )
+)
+print(mip_table, row.names = FALSE)
+
+# Check recovery
+cat("\nRecovery of true words:\n")
+for (i in seq_along(true_words)) {
+  word_idx <- true_words[i]
+  cat(sprintf("  Word %3d (original %3d): MIP = %.4f, Rank = %2d\n",
+              word_idx,
+              true_words_old[i],
+              result$mip[word_idx],
+              which(order(result$mip, decreasing = TRUE) == word_idx)))
+}
+```
+
+## Visualizing MIPs
+
+```{r plot-mips, fig.width=7, fig.height=6}
+par(mfrow = c(2, 1), mar = c(4, 4, 3, 1))
+
+# Plot 1: All MIPs
+plot(
+  1:p, result$mip,
+  type = "h", col = "gray70", lwd = 1,
+  xlab = "Word Index (in reduced matrix)",
+  ylab = "MIP",
+  main = "Marginal Inclusion Probabilities (All Words)",
+  ylim = c(0, 1)
+)
+points(true_words, result$mip[true_words], 
+       col = "red", pch = 19, cex = 2)
+abline(h = 0.5, col = "blue", lty = 2, lwd = 2)
+legend("topright",
+       legend = c("True word", "MIP > 0.5"),
+       col = c("red", "blue"),
+       pch = c(19, NA),
+       lty = c(NA, 2),
+       lwd = 2)
+
+```
+
+## Visualizing WMIPs
+
+ `geomc.vs` also returns the weighted marginal inclusion probabilities (`wmip`).
+
+```{r plot-wmips, fig.width=7, fig.height=6}
+par(mfrow = c(2, 1), mar = c(4, 4, 3, 1))
+
+# Plot 2: All WMIPs
+plot(
+  1:p, result$wmip,
+  type = "h", col = "gray70", lwd = 1,
+  xlab = "Word Index (in reduced matrix)",
+  ylab = "WMIP",
+  main = "Weighted Marginal Inclusion Probabilities (All Words)",
+  ylim = c(0, 1)
+)
+points(true_words, result$wmip[true_words], 
+       col = "red", pch = 19, cex = 2)
+abline(h = 0.5, col = "blue", lty = 2, lwd = 2)
+legend("topright",
+       legend = c("True word", "WMIP > 0.5"),
+       col = c("red", "blue"),
+       pch = c(19, NA),
+       lty = c(NA, 2),
+       lwd = 2)
+
+```
+
+## Model Selection Performance
+
+```{r model-performance}
+# Median probability model
+selected_words <- result$median.model
+
+cat("Median Probability Model:\n")
+cat("  Words selected:", length(selected_words), "\n")
+cat("  Word indices (in reduced matrix):", paste(selected_words, collapse = ", "), "\n\n")
+
+# Confusion matrix
+true_positive <- sum(true_words %in% selected_words)
+false_positive <- length(selected_words) - true_positive
+false_negative <- length(true_words) - true_positive
+true_negative <- p - length(true_words) - false_positive
+
+cat("Classification Performance:\n")
+cat("  True Positives:", true_positive, "/", length(true_words), "\n")
+cat("  False Positives:", false_positive, "\n")
+cat("  False Negatives:", false_negative, "\n")
+cat("  Sensitivity:", round(true_positive / length(true_words), 3), "\n")
+cat("  Precision:", 
+    round(true_positive / max(1, length(selected_words)), 3), "\n")
+```
+
+## Weighted Average Model
+
+`geomc.vs` also returns the weighted average model. The weighted average model includes all variables with `wpip` > `model.threshold` (Default 0.5).
+
+```{r wam-model-performance}
+# Weighted average model
+selected_words <- result$wam
+
+cat("Weighted Average Model:\n")
+cat("  Words selected:", length(selected_words), "\n")
+cat("  Word indices (in reduced matrix):", paste(selected_words, collapse = ", "), "\n\n")
+
+# Confusion matrix
+true_positive <- sum(true_words %in% selected_words)
+false_positive <- length(selected_words) - true_positive
+false_negative <- length(true_words) - true_positive
+true_negative <- p - length(true_words) - false_positive
+
+cat("Classification Performance:\n")
+cat("  True Positives:", true_positive, "/", length(true_words), "\n")
+cat("  False Positives:", false_positive, "\n")
+cat("  False Negatives:", false_negative, "\n")
+cat("  Sensitivity:", round(true_positive / length(true_words), 3), "\n")
+cat("  Precision:", 
+    round(true_positive / max(1, length(selected_words)), 3), "\n")
+
+
+```
+## Coefficient Estimates
+
+```{r coefficient-estimates}
+cat("Coefficient Estimates for True Words:\n\n")
+
+coef_table <- data.frame(
+  Word_New = true_words,
+  Word_Original = true_words_old[1:length(true_words)],
+  True_Effect = true_effects,
+  Post_Mean = round(result$beta.mean[(1+true_words)], 3),
+  Beta_WAM = round(result$beta.wam[(1+true_words)], 3),
+  MIP = round(result$mip[true_words], 4),
+  WMIP = round(result$wmip[true_words], 4),
+  Selected = ifelse(true_words %in% selected_words, "Yes", "")
+)
+print(coef_table, row.names = FALSE)
+```
+
+## Model Space Exploration
+
+```{r sparse-model-space, fig.width=7, fig.height=6}
+# Sizes of visited models
+model_sizes <- apply(result$samples, 1, sum)
+
+hist(
+  model_sizes,
+  breaks = 30,
+  main = "Distribution of Model Sizes Visited",
+  xlab = "Number of Words in Model",
+  ylab = "Frequency",
+  col = "lightblue",
+  border = "white"
+)
+abline(v = length(true_words), col = "red", lwd = 3, lty = 2)
+abline(v = median(model_sizes), col = "blue", lwd = 2, lty = 2)
+legend("topleft",
+       legend = c(
+         paste("True size =", length(true_words)),
+         paste("Median =", median(model_sizes))
+       ),
+       col = c("red", "blue"),
+       lty = 2,
+       lwd = 2)
+
+cat("\nModel size summary:\n")
+cat("  Mean:", round(mean(model_sizes), 2), "\n")
+cat("  Median:", median(model_sizes), "\n")
+cat("  Range:", range(model_sizes), "\n")
+```
+## Key Takeaways
+
+- Sparse matrices provide significant memory savings for high-dimensional data
+
+- Removing zero-variance columns is essential for numerical stability
+
+- The median probability model and MIPs help identify important variables
+
+- The method successfully recovers all true variables while controlling false positives
+
+## Variable Selection using geomc.vs with an Asymmetric Random Walk Base
+
+`geomc.vs` can also implement an asymmetric random walk base. This is specified by setting `symm=FALSE` and indicating the  vector of ('addition', 'deletion', 'swap') move probabilities via the argument `move.prob`.
+
+```{r run-geomc-vs-asym}
+# Run variable selection
+set.seed(123)
+result_asym <- geomc.vs(
+  X = X_sparse,         # Sparse dgCMatrix
+  y = y,
+  symm = FALSE,
+  move.prob = c(0.4,0.4,0.2),
+  model.summary = TRUE # Compute model summaries (default: FALSE)
+)
+```
+
+
+
+```{r asym-analysis}
+cat("\nAcceptance rate:", round(result_asym$acceptance.rate, 3), "\n")
+# Identify top words by MIP
+top_n <- 20
+top_indices <- order(result_asym$mip, decreasing = TRUE)[1:top_n]
+
+cat("Top", top_n, "words by Marginal Inclusion Probability:\n\n")
+cat("(Note: Word indices are in the reduced matrix space)\n\n")
+
+mip_table <- data.frame(
+  Rank = 1:top_n,
+  Word_Index = top_indices,
+  MIP = round(result_asym$mip[top_indices], 4),
+  True_Word = ifelse(top_indices %in% true_words, "Yes", "No"),
+  True_Effect = ifelse(
+    top_indices %in% true_words,
+    sprintf("%.2f", beta_true[top_indices]),
+    ""
+  )
+)
+print(mip_table, row.names = FALSE)
+
+# Check recovery
+cat("\nRecovery of true words:\n")
+for (i in seq_along(true_words)) {
+  word_idx <- true_words[i]
+  cat(sprintf("  Word %3d (original %3d): MIP = %.4f, Rank = %2d\n",
+              word_idx,
+              true_words_old[i],
+              result_asym$mip[word_idx],
+              which(order(result_asym$mip, decreasing = TRUE) == word_idx)))
+}
+```
+
+## Visualizing MIPs
+
+```{r asym-plot-mips, fig.width=7, fig.height=6}
+par(mfrow = c(2, 1), mar = c(4, 4, 3, 1))
+
+# Plot 1: All MIPs
+plot(
+  1:p, result_asym$mip,
+  type = "h", col = "gray70", lwd = 1,
+  xlab = "Word Index (in reduced matrix)",
+  ylab = "MIP",
+  main = "Marginal Inclusion Probabilities (All Words)",
+  ylim = c(0, 1)
+)
+points(true_words, result_asym$mip[true_words], 
+       col = "red", pch = 19, cex = 2)
+abline(h = 0.5, col = "blue", lty = 2, lwd = 2)
+legend("topright",
+       legend = c("True words", "MIP > 0.5"),
+       col = c("red", "blue"),
+       pch = c(19, NA),
+       lty = c(NA, 2),
+       lwd = 2)
+```
+
+## Model Selection Performance
+
+
+```{r asym-model-performance}
+# Median probability model
+selected_words <- result_asym$median.model
+
+cat("Median Probability Model:\n")
+cat("  Words selected:", length(selected_words), "\n")
+cat("  Word indices (in reduced matrix):", paste(selected_words, collapse = ", "), "\n\n")
+
+# Confusion matrix
+true_positive <- sum(true_words %in% selected_words)
+false_positive <- length(selected_words) - true_positive
+false_negative <- length(true_words) - true_positive
+true_negative <- p - length(true_words) - false_positive
+
+cat("Classification Performance:\n")
+cat("  True Positives:", true_positive, "/", length(true_words), "\n")
+cat("  False Positives:", false_positive, "\n")
+cat("  False Negatives:", false_negative, "\n")
+cat("  Sensitivity:", round(true_positive / length(true_words), 3), "\n")
+cat("  Precision:", 
+    round(true_positive / max(1, length(selected_words)), 3), "\n")
+```
+## Coefficient Estimates
+
+```{r asym-coefficient-estimates}
+cat("Coefficient Estimates for True Words:\n\n")
+
+coef_table <- data.frame(
+  Word_New = true_words,
+  Word_Original = true_words_old[1:length(true_words)],
+  True_Effect = true_effects,
+  Post_Mean = round(result_asym$beta.mean[(1+true_words)], 3),
+  Beta_WAM = round(result_asym$beta.wam[(1+true_words)], 3),
+  MIP = round(result_asym$mip[true_words], 4),
+  WMIP = round(result_asym$wmip[true_words], 4),
+  Selected = ifelse(true_words %in% selected_words, "Yes", "")
+)
+print(coef_table, row.names = FALSE)
+```
+
+## Model Space Exploration
+
+```{r asym-model-space, fig.width=7, fig.height=6}
+# Sizes of visited models
+model_sizes <- apply(result_asym$samples, 1, sum)
+
+hist(
+  model_sizes,
+  breaks = 30,
+  main = "Distribution of Model Sizes Visited",
+  xlab = "Number of Words in Model",
+  ylab = "Frequency",
+  col = "lightblue",
+  border = "white"
+)
+abline(v = length(true_words), col = "red", lwd = 3, lty = 2)
+abline(v = median(model_sizes), col = "blue", lwd = 2, lty = 2)
+legend("topleft",
+       legend = c(
+         paste("True size =", length(true_words)),
+         paste("Median =", median(model_sizes))
+       ),
+       col = c("red", "blue"),
+       lty = 2,
+       lwd = 2)
+
+cat("\nModel size summary:\n")
+cat("  Mean:", round(mean(model_sizes), 2), "\n")
+cat("  Median:", median(model_sizes), "\n")
+cat("  Range:", range(model_sizes), "\n")
+```
+We see that `geomc.vs` with either of the two random walk base pmfs, successfully recovers all true variables while controlling false positives.  For a detailed analysis of the performance of `geomc.vs` in several ultra-high dimensional simulated and real data examples, see @roy2024.
+
+
+## Additional Parameters
+
+The `geomc.vs()` function allows several arguments. `initial`	is used to specify the initial model (the set of active variables) for running the Markov chain (Default: Null model). `n.iter`	is the no. of MCMC samples needed (Default: 50). `burnin`	is the value of burnin used to compute the median probability model and other model summaries based only on the post burnin samples  (Default: 1). `eps`	is the value for epsilon perturbation (Default: 0.5). `lam0` is the precision parameter for the normal prior of $\beta_0$ (Default: 0, corresponding to the improper uniform prior). The shape and scale parameters for the Inverse-Gamma prior on $\sigma^2$ are specified by `a0` and `b0`, respectively (The default values are 0, 0, corresponding to the prior $1/\sigma^2$). `lam`	is the slab precision parameter for the normal prior of $\beta_i$'s (Default: $n/p^2$ as suggested by the theoretical results of @liduttroy2023). `w`	is the prior inclusion probability of each variable (Default: $n/p$ as suggested by @liduttroy2023).
+
+### Key Parameters
+```{r tuning, eval=FALSE}
+result <- geomc.vs(
+  X = X,
+  y = y,
+  initial = c(1,2),         # Initial model (the set of active variables)
+  n.iter = 100,        # Number of MCMC iterations
+  burnin = 2,           # Burn-in period (default: 1)
+  eps = 0.5,            # Perturbation parameter (default: 0.5)
+  symm = FALSE,          # Use symmetric proposals (default: TRUE)
+  move.prob = c(.3, .3, .4),  # Probabilities for add/delete/swap moves
+  lam0 = 0,             # Prior parameter (default: 0)
+  a0 = 0,               # Prior shape parameter (default: 0)
+  b0 = 0,               # Prior scale parameter (default: 0)
+  lam = n / p^2,        # Prior parameter (default: n/p^2)
+  w = sqrt(n) / p,      # Prior inclusion probability (default: sqrt(n)/p)
+  model.summary = TRUE, # Compute model summaries (default: FALSE)
+  model.threshold = 0.5, # Threshold for median model (default: 0.5)
+  show.progress = TRUE # Show progress during sampling
+)
+```
+
+## Summary
+
+
+1.  `geomc.vs()` performs Bayesian variable selection using geometric MCMC
+2. Returns marginal inclusion probabilities (MIPs) for each variable
+3. Provides multiple model summaries: median model, WAM, posterior means
+4. Scales to high-dimensional problems ($p >> n$)
+5. Quantifies uncertainty about variable selection
+
+## Appendix:  The Model
+
+@roy2024 considers the following linear regression for variable selection:
+
+$$y_i | \mathbf{X}, \beta_0,\mathbf{\beta},\mathbf{\gamma},\sigma^2,w,\lambda \stackrel{ind}{\sim} N(\beta_0 + \sum_{j=1}^p \gamma_j \beta_j x_{ij}, \sigma^2), i=1,\dots, n,$$
+or in vector notations: $$\mathbf{y} | \mathbf{X}, \beta_0,\mathbf{\beta},\mathbf{\gamma},\sigma^2,w,\lambda \sim N(\beta_01 + \mathbf{X}_{\mathbf{\gamma}}\mathbf{\beta}_{\mathbf{\gamma}},\sigma^2I_n).$$
+
+where $\mathbf{\gamma} = (\gamma_1, \ldots, \gamma_p) \in \{0, 1\}^p$ are binary indicators,  $\mathbf{\beta} = (\beta_1, \ldots, \beta_p)$ is the vector of regression coefficients, $\mathbf{X}_{\mathbf{\gamma}}$ is the $n \times |\mathbf{\gamma}|$ submatrix of $\mathbf{X}$ consisting of
+ those columns of $\mathbf{X}$ for which $\gamma_i=1$ and similarly, $\mathbf{\beta}_{\mathbf{\gamma}}$ is the $|\mathbf{\gamma}|$ subvector of $\mathbf{\beta}$ corresponding to $\mathbf{\gamma}$ with $|\gamma| = \sum_{j=1}^p \gamma_j$ being the model size.
+
+Next, the hierarchical Gaussian linear model in @roy2024 places priors on the regression coefficients as well as on the model space as follows:
+
+### Prior Specification
+- **Coefficient prior**: $\beta_i|\beta_0,\mathbf{\gamma},\sigma^2,w,\lambda \stackrel{ind}{\sim} N(0, \gamma_i\sigma^2/\lambda),~i=1,\ldots,p,$
+
+- **Intercept prior**: $\beta_0|\mathbf{\gamma},\sigma^2,w,\lambda \sim N(0, \sigma^2/\lambda_0)$
+
+- **Error variance**: $\sigma^2|\mathbf{\gamma},w,\lambda \sim \text{Inverse-Gamma}(a_0, b_0)$
+
+- **Model prior**: $\gamma_i|w,\lambda \stackrel{iid}{\sim} \text{Bernoulli} (w), i=1,\dots,p$
+
+The density $\pi(\sigma^2)$ of $\sigma^2 \sim$ Inv-Gamma $(a_0, b_0)$ has the form $$\pi(\sigma^2) \propto (\sigma^2)^{-a_0-1} \exp(-b_0/\sigma^2).$$
+ `geomc.vs` also allows the non-informative prior $$(\beta_{0}, \sigma^2)|\mathbf{\gamma}, w \sim 1 / \sigma^{2},$$ 
+which is obtained by setting $\lambda_0=a_0=b_0=0$.
+
+### Posterior Computation
+
+The posterior is:
+
+$$P(\mathbf{\gamma} | \mathbf{y}) \propto P(\mathbf{y} | \mathbf{\gamma}) P(\mathbf{\gamma}).$$
+
+`geomc.vs` explores this posterior using the geometric MCMC proposed in @roy2024. `geomc.vs` returns the Markov chain samples, the empirical MH acceptance rate, and the log-posterior values
+(up to an additive constant) at the observed MCMC samples.
+
+ If `model.summary` is set TRUE, `geomc.vs` also returns other model summaries. In particular, it returns the marginal inclusion probabilities (`mip`) computed by the Monte Carlo average as well as the weighted marginal inclusion probabilities (`wmip`) computed with weights 
+ $$w_i = P(\gamma^{(i)}|\mathbf{y})/\sum_{k=1}^K P(\gamma^{(k)}|\mathbf{y}), i=1,2,...,K$$ where $\gamma^{(k)}, k=1,2,...,K$ are the distinct models sampled. Thus, if $N_k$ is the no. of times the $k$th distinct model $\gamma^{(k)}$ is repeated in the MCMC samples, the `mip` for the $j$th variable is $$\texttt{mip}_j =\sum_{k=1}^{K} N_k I(\gamma^{(k)}_j = 1)/\texttt{n.iter}$$ and
+`wmip` for the $j$th variable is $$\texttt{wmip}_j =
+\sum_{k=1}^K w_k I(\gamma^{(k)}_j = 1).$$
+
+The `median.model` is the model containing variables $j$ with $$\texttt{mip}_j >\texttt{model.threshold}$$ and the `wam` is the model containing variables $j$ with $$\texttt{wmip}_j > \texttt{model.threshold}.$$ Note that $E(\beta|\gamma, \mathbf{y})$, the conditional posterior mean of $\mathbf{\beta}$ given a model $\gamma$ is available in closed form (see @liduttroy2023 for details). `geomc.vs` returns two estimates (`beta.mean`, `beta.wam`) of the posterior mean of $\beta$ computed as
+$$ \texttt{beta.mean} = \sum_{k=1}^{K} N_k E(\beta|\gamma^{(k)},\mathbf{y})/\text{n.iter}$$ and
+$$\texttt{beta.wam} = \sum_{k=1}^K w_k E(\beta|\gamma^{(k)},\mathbf{y}),$$ respectively.
+
+## References
+
+

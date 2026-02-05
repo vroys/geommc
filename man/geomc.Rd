@@ -22,7 +22,7 @@ geomc(
 \item{logp}{Either a function that evaluates the logarithm of the un-normalized target density (pdf or pmf) to sample from, or
 a list containing at least one element named \code{log.target}. The list may optionally include any of the following elements
 specifying additional functions for the base and approximate target densities: \code{mean.base}, \code{var.base}, \code{dens.base},
-\code{samp.base}, \code{mean.ap.tar}, \code{var.ap.tar}, \code{dens.ap.tar}, and \code{samp.ap.tar}. See below for details of these functions.
+\code{samp.base}, \code{mean.ap.tar}, \code{var.ap.tar}, \code{dens.ap.tar}, \code{samp.ap.tar}, and \code{bhat.coef}. See below for details of these functions.
 Any optional elements not provided are treated as missing, and default behavior is applied.
 \itemize{
 \item \code{log.target} A function that evaluates the logarithm of the
@@ -35,9 +35,11 @@ If the target density requires additional parameters, the user-supplied
 \item \code{dens.base} is the density function of the base density \eqn{f}, needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.
 \item \code{samp.base} is the function to draw from the base density \eqn{f}, needs to be written as a function of the current state \eqn{x}.
 \item \code{mean.ap.tar} is the vector of means of the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of the current state \eqn{x}. It must have the same dimension as \eqn{k} times the length of initial.
-\item \code{var.ap.tar} is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current value \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.
+\item \code{var.ap.tar} is the matrix of covariance matrices of the densities \eqn{g_i(y|x), i=1,\dots,k} formed by column concatenation. It needs to be written as a function of the current state \eqn{x}. It must have the same dimension as the length of initial by \eqn{k} times the length of initial.
 \item \code{dens.ap.tar} is the vector of densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function \eqn{(y,x)} (in this order) of the proposed state \eqn{y} and the current state \eqn{x}, although it may not depend on \eqn{x}.
 \item \code{samp.ap.tar} is the function to draw from the densities \eqn{g_i(y|x), i=1,\dots,k}. It needs to be written as a function of (current state \eqn{x}, the indicator of component \eqn{kk}). It must return a vector of the length of that of the initial.
+\item \code{bhat.coef} is the vector of Bhattacharyya coefficients \eqn{\langle \sqrt{f(\cdot|x)}, \sqrt{g_i(\cdot|x)} \rangle, i=1,\dots,k}. It needs to be written as a function of the current state \eqn{x}.
+When \code{gaus= TRUE}, the \code{bhat.coef} argument is ignored and the built-in function is used.
 }}
 
 \item{initial}{is the initial state.}
@@ -55,17 +57,18 @@ the current state \eqn{x}. Default is False.}
 This list has components:
 \itemize{
 \item \code{enabled} Logical. If \code{FALSE} (default),
-numerical integration is used to compute
-\eqn{\langle \sqrt{f}, \sqrt{g} \rangle}. If \code{TRUE},
+numerical integration is used to compute the Bhattacharyya coefficient
+\eqn{\langle \sqrt{f}, \sqrt{g_i} \rangle}. If \code{TRUE},
 importance sampling is used instead.
 \item \code{n.samp} A positive integer giving the number of Monte Carlo
 samples used when \code{enabled = TRUE}.
 \item \code{samp.base} Logical. If \code{TRUE}, the samples in the
 importance sampler are drawn from the base density \eqn{f};
-otherwise they are drawn from the target density \eqn{g}.
+otherwise they are drawn from the approximate target density \eqn{g}.
 Default is \code{FALSE}.
 }
-When \code{gaus = TRUE}, the \code{imp} argument is ignored.}
+When \code{gaus = TRUE}, the \code{imp} argument is ignored. Also, when \code{bhat.coef} is provided,
+the \code{imp} argument is ignored.}
 
 \item{a}{is the probability vector for the mixture proposal density. Default is the uniform distribution.}
 
@@ -76,8 +79,8 @@ When \code{gaus = TRUE}, the \code{imp} argument is ignored.}
 \value{
 The function returns a list with the following components:
 \item{\code{samples}}{A matrix containing the MCMC samples. Each row is one sample.}
-\item{\code{log.p}}{A vector with the logarithm of the (un-normalized) target density for each MCMC sample.}
 \item{\code{acceptance.rate}}{The Metropolis-Hastings acceptance rate.}
+\item{\code{log.p}}{A vector with the logarithm of the (un-normalized) target density for each MCMC sample.}
 \item{\code{gaus}}{The value of the logical gaus.}
 \item{\code{ind}}{The value of the logical ind.}
 \item{\code{model.case}}{Describes whether default settings are used for both functions
@@ -94,32 +97,37 @@ may be either a probability density function (pdf) or a probability mass functio
 The target is provided as an R function returning the log of its unnormalized pdf or pmf.
 }
 \details{
-The function geomc implements the geometric approach of Roy (2024) to move an initial (possibly uninformed)
-base density toward one or more approximate target densities, thereby constructing efficient proposal distributions
-for MCMC. The details of the method can be found in Roy (2024).
+The function \code{geomc} implements the geometric approach of Roy (2024) to move an initial (possibly uninformed)
+base density \eqn{f} toward one or more approximate target densities \eqn{g_i, i=1,\dots,k}, thereby constructing
+efficient proposal distributions for MCMC. The details of the method can be found in Roy (2024).
 
-The base density can be user-specified through its mean, covariance matrix, density function, and sampling function.
-When the base density is Gaussian, it may be specified using only its mean and covariance; however, the
-density and sampling functions can also be provided.
+The base density \eqn{f} can be user-specified through its mean, covariance matrix, density function, and sampling
+function. One or more approximate target densities \eqn{g_i, i=1,\dots,k} can also be supplied. Just like the base
+density, each approximate target may be specified through its mean, covariance, density, and sampling functions.
+
+A Gaussian (\eqn{f} or \eqn{g_i}) density must be specified in terms of its mean
+and covariance; optional density and sampling functions may also be supplied.
+
+Non-Gaussian densities, including discrete pmfs for either the base or approximate target, are specified solely
+via their density and sampling functions. If for either the base or the approximate target, the user specifies
+both a density function and a sampling function but omits either the mean function or the covariance function,
+then \code{gaus = FALSE} is automatically enforced.
+
 If either or both of the mean and variance arguments and any of the density and sampling functions is
-omitted, geomc automatically constructs a base density corresponding to a random-walk proposal with an appropriate scale.
-One or more approximate target densities
-can be supplied. Just like the base density, each approximate target may be specified through its mean, covariance,
-density, and sampling functions.
-Gaussian approximate targets may be specified using only their means and covariance matrices, although their densities
-and sampling functions can be supplied as well. If either or both of the mean and variance
-arguments and any of the density and sampling functions is missing for the approximate target density, then geomc
-automatically constructs a diffuse multivariate normal distribution as the approximate target.
+omitted for the base density, \code{geomc} automatically constructs a base density corresponding to a
+random-walk proposal with an appropriate scale. If either or both of the mean and variance
+arguments and any of the density and sampling functions is missing for the approximate target density,
+then \code{geomc} automatically constructs a diffuse multivariate normal distribution as the approximate target.
 
-If the argument gaus is set to FALSE, then both the base and approximate target can be specified through their
-density functions and sampling functions. In this case, any user-supplied mean or covariance functions for these distributions are ignored.
-Conversely, if for either the base or the approximate target, the user specifies both a density function and a sampling
-function but omits either the mean function or the covariance function, then gaus = FALSE is automatically enforced.
+If the target distribution is a pmf (i.e., a discrete distribution) then the user must provide the base pmf \eqn{f}
+and one or more \eqn{g_i}'s. The package vignette \code{vignette("geommc")} provides several useful choices for \eqn{f}
+and \eqn{g_i}. In addition, the user must set \code{gaus=FALSE} and either supply \code{bhat.coef} or set \code{imp$enabled=TRUE}
+(neither of which is the default for \code{gaus} or \code{imp}). This ensures that the algorithm uses either the user defined
+\code{bhat.coef} function or the importance sampling, rather than numerical integration or closed-form Gaussian expressions,
+for computing the Bhattacharyya coefficient \eqn{\langle \sqrt{f}, \sqrt{g_i} \rangle} for discrete distributions.
 
-If the target distribution is a pmf (i.e., a discrete distribution),
-then the user must set gaus=FALSE and imp$enabled=TRUE (these are not the default values). This ensures that the algorithm uses
-importance sampling rather than numerical integration or closed-form Gaussian expressions
-when computing \eqn{\langle \sqrt{f}, \sqrt{g} \rangle} for discrete targets.
+For a discussion and several illustrative examples of the \code{geomc} function, see the package vignette
+\code{vignette("geommc")}.
 }
 \examples{
 #target is multivariate normal, sampling using geomc with default choices
